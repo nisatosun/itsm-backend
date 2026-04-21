@@ -1,7 +1,9 @@
 package com.nisa.itsm.user.controller;
 
-import com.nisa.itsm.user.entity.User;
+import com.nisa.itsm.user.dto.request.UserCreateRequest;
+import com.nisa.itsm.user.dto.response.UserResponse;
 import com.nisa.itsm.user.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,12 +19,12 @@ public class UserController {
     }
 
     @PostMapping
-    public User createUser(@RequestBody User user) {
-        return userService.saveUser(user);
+    public UserResponse createUser(@Valid @RequestBody UserCreateRequest request) {
+        return userService.createUser(request);
     }
 
     @GetMapping
-    public List<User> getAllUsers() {
+    public List<UserResponse> getAllUsers() {
         return userService.getAllUsers();
     }
 }
