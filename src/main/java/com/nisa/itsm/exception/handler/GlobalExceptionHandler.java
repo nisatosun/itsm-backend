@@ -1,6 +1,7 @@
 package com.nisa.itsm.exception.handler;
 
 import com.nisa.itsm.common.dto.ErrorResponse;
+import com.nisa.itsm.exception.custom.UserAlreadyExistsException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
@@ -12,6 +13,7 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    // 🔴 VALIDATION ERROR
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleValidationException(
@@ -33,6 +35,23 @@ public class GlobalExceptionHandler {
         );
     }
 
+    // 🟠 BUSINESS ERROR (CUSTOM)
+    @ExceptionHandler(UserAlreadyExistsException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse handleUserAlreadyExistsException(
+            UserAlreadyExistsException ex,
+            HttpServletRequest request) {
+
+        return new ErrorResponse(
+                409,
+                "Conflict",
+                ex.getMessage(),
+                request.getRequestURI(),
+                List.of()
+        );
+    }
+
+    // ⚫ GENERIC ERROR
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorResponse handleGenericException(

@@ -1,5 +1,6 @@
 package com.nisa.itsm.user.service;
 
+import com.nisa.itsm.exception.custom.UserAlreadyExistsException;
 import com.nisa.itsm.user.dto.request.UserCreateRequest;
 import com.nisa.itsm.user.dto.response.UserResponse;
 import com.nisa.itsm.user.entity.User;
@@ -19,6 +20,14 @@ public class UserService {
     }
 
     public UserResponse createUser(UserCreateRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new UserAlreadyExistsException("Bu email zaten kullanımda");
+        }
+
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new UserAlreadyExistsException("Bu username zaten kullanımda");
+        }
+
         User user = new User();
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
