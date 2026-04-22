@@ -1,19 +1,21 @@
 package com.nisa.itsm.exception.handler;
 
 import com.nisa.itsm.common.dto.ErrorResponse;
+import com.nisa.itsm.common.exception.ResourceNotFoundException;
 import com.nisa.itsm.exception.custom.UserAlreadyExistsException;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // 🔴 VALIDATION ERROR
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleValidationException(
@@ -35,7 +37,6 @@ public class GlobalExceptionHandler {
         );
     }
 
-    // 🟠 BUSINESS ERROR (CUSTOM)
     @ExceptionHandler(UserAlreadyExistsException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse handleUserAlreadyExistsException(
@@ -51,16 +52,15 @@ public class GlobalExceptionHandler {
         );
     }
 
-    // ⚫ GENERIC ERROR
-    @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorResponse handleGenericException(
-            Exception ex,
+    @ExceptionHandler(ResourceNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleResourceNotFoundException(
+            ResourceNotFoundException ex,
             HttpServletRequest request) {
 
         return new ErrorResponse(
-                500,
-                "Internal Server Error",
+                404,
+                "Not Found",
                 ex.getMessage(),
                 request.getRequestURI(),
                 List.of()
@@ -77,6 +77,21 @@ public class GlobalExceptionHandler {
                 403,
                 "Forbidden",
                 "Access denied",
+                request.getRequestURI(),
+                List.of()
+        );
+    }
+
+    @ExceptionHandler(Exception.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorResponse handleGenericException(
+            Exception ex,
+            HttpServletRequest request) {
+
+        return new ErrorResponse(
+                500,
+                "Internal Server Error",
+                ex.getMessage(),
                 request.getRequestURI(),
                 List.of()
         );
