@@ -66,4 +66,19 @@ public class GlobalExceptionHandler {
                 List.of()
         );
     }
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ErrorResponse handleAccessDeniedException(
+            org.springframework.security.access.AccessDeniedException ex,
+            HttpServletRequest request) {
+
+        return new ErrorResponse(
+                403,
+                "Forbidden",
+                "Access denied",
+                request.getRequestURI(),
+                List.of()
+        );
+    }
 }
