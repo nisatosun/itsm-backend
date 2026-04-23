@@ -98,6 +98,12 @@ public class UserService {
         response.setUsername(user.getUsername());
         response.setEmail(user.getEmail());
         response.setCreatedAt(user.getCreatedAt());
+        response.setRoles(
+                user.getRoles()
+                        .stream()
+                        .map(Enum::name)
+                        .toList()
+        );
         return response;
     }
 }

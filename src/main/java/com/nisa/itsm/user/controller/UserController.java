@@ -1,12 +1,13 @@
 package com.nisa.itsm.user.controller;
 
-import com.nisa.itsm.common.dto.PageResponse;
 import com.nisa.itsm.user.dto.UserDetailDto;
 import com.nisa.itsm.user.dto.UserSummaryDto;
 import com.nisa.itsm.user.dto.request.UpdateUserRolesRequest;
 import com.nisa.itsm.user.dto.request.UserCreateRequest;
 import com.nisa.itsm.user.dto.response.UserResponse;
 import com.nisa.itsm.user.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +18,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
+@Tag(name = "User Controller", description = "User management endpoints")
 public class UserController {
 
     private final UserService userService;
@@ -26,37 +28,34 @@ public class UserController {
     }
 
     @PostMapping
+    @Operation(summary = "Create user", description = "Creates a new user")
     public UserResponse createUser(@Valid @RequestBody UserCreateRequest request) {
         return userService.createUser(request);
     }
 
     @GetMapping
+    @Operation(summary = "Get all users", description = "Returns all users without pagination")
     public List<UserResponse> getAllUsers() {
         return userService.getAllUsers();
     }
 
     @GetMapping(params = {"page"})
     @PreAuthorize("hasRole('ADMIN')")
-    public PageResponse<UserSummaryDto> getPaginatedUsers(Pageable pageable) {
-        Page<UserSummaryDto> page = userService.getAllUsers(pageable);
-
-        return new PageResponse<>(
-                page.getContent(),
-                page.getNumber(),
-                page.getSize(),
-                page.getTotalElements(),
-                page.getTotalPages()
-        );
+    @Operation(summary = "Get paginated users", description = "Returns paginated users, only accessible by ADMIN")
+    public Page<UserSummaryDto> getPaginatedUsers(Pageable pageable) {
+        return userService.getAllUsers(pageable);
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Get user by id", description = "Returns user details by user id, only accessible by ADMIN")
     public UserDetailDto getUserById(@PathVariable Long id) {
         return userService.getUserById(id);
     }
 
     @PutMapping("/{id}/roles")
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Update user roles", description = "Updates roles of a user, only accessible by ADMIN")
     public UserResponse updateUserRoles(
             @PathVariable Long id,
             @Valid @RequestBody UpdateUserRolesRequest request) {
