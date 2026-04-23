@@ -40,21 +40,21 @@ public class UserController {
     }
 
     @GetMapping(params = {"page"})
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Get paginated users", description = "Returns paginated users, only accessible by ADMIN")
     public Page<UserSummaryDto> getPaginatedUsers(Pageable pageable) {
         return userService.getAllUsers(pageable);
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Get user by id", description = "Returns user details by user id, only accessible by ADMIN")
     public UserDetailDto getUserById(@PathVariable Long id) {
         return userService.getUserById(id);
     }
 
     @PutMapping("/{id}/roles")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Update user roles", description = "Updates roles of a user, only accessible by ADMIN")
     public UserResponse updateUserRoles(
             @PathVariable Long id,

@@ -84,9 +84,17 @@ public class UserProfileMapper {
     }
 
     private String normalizeRole(String roleName) {
-        if (roleName.startsWith("ROLE_")) {
-            return roleName.toUpperCase();
+        if (roleName == null) {
+            return null;
         }
-        return "ROLE_" + roleName.toUpperCase();
+
+        String cleaned = roleName.trim().toUpperCase();
+
+        // ROLE_ prefix varsa kaldır
+        if (cleaned.startsWith("ROLE_")) {
+            cleaned = cleaned.substring(5);
+        }
+
+        return cleaned;
     }
 }

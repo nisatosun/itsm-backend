@@ -25,14 +25,14 @@ public class AuthController {
     }
 
     @GetMapping("/test-customer")
-    @PreAuthorize("hasRole('CUSTOMER')")
+    @PreAuthorize("hasAuthority('CUSTOMER')")
     @Operation(summary = "Customer test endpoint", description = "Accessible only by users with CUSTOMER role")
     public String testCustomer() {
         return "Hello CUSTOMER";
     }
 
     @GetMapping("/test-admin")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Admin test endpoint", description = "Accessible only by users with ADMIN role")
     public String testAdmin() {
         return "Hello ADMIN";

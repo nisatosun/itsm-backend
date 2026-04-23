@@ -1,5 +1,6 @@
 package com.nisa.itsm.config;
 
+import com.nisa.itsm.security.KeycloakJwtConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
