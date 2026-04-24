@@ -1,9 +1,10 @@
 package com.nisa.itsm.common.enums;
 
 public enum TicketStatus {
-    OPEN,
+    NEW,
     IN_PROGRESS,
+    WAITING_FOR_CUSTOMER,
     RESOLVED,
-    CLOSED,
-    CANCELLED
+    CLOSED
 }
+

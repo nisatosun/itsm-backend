@@ -1,15 +1,15 @@
 package com.nisa.itsm.user.service;
 
+import com.nisa.itsm.common.enums.Role;
 import com.nisa.itsm.common.exception.ResourceNotFoundException;
 import com.nisa.itsm.exception.custom.UserAlreadyExistsException;
+import com.nisa.itsm.user.dto.UserDetailDto;
+import com.nisa.itsm.user.dto.UserSummaryDto;
 import com.nisa.itsm.user.dto.request.UpdateUserRolesRequest;
 import com.nisa.itsm.user.dto.request.UserCreateRequest;
-import com.nisa.itsm.user.dto.UserSummaryDto;
-import com.nisa.itsm.user.dto.UserDetailDto;
 import com.nisa.itsm.user.dto.response.UserResponse;
 import com.nisa.itsm.user.entity.User;
 import com.nisa.itsm.user.repository.UserRepository;
-import com.nisa.itsm.common.enums.Role;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -56,12 +56,16 @@ public class UserService {
     public Page<UserSummaryDto> getAllUsers(Pageable pageable) {
         return userRepository.findAll(pageable)
                 .map(user -> new UserSummaryDto(
-                        String.valueOf(user.getId()),
+                        user.getId(),
                         user.getUsername(),
                         user.getEmail(),
                         null,
                         null,
-                        List.of()));
+                        user.getRoles()
+                                .stream()
+                                .map(Enum::name)
+                                .toList()
+                ));
     }
 
     public UserDetailDto getUserById(Long id) {
@@ -87,9 +91,9 @@ public class UserService {
                 .collect(Collectors.toSet());
 
         user.setRoles(roles);
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
 
-        return mapToResponse(user);
+        return mapToResponse(savedUser);
     }
 
     private UserResponse mapToResponse(User user) {
