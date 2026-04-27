@@ -1,6 +1,8 @@
 package com.nisa.itsm.ticket.controller;
 
+import com.nisa.itsm.ticket.dto.request.AssignTicketRequest;
 import com.nisa.itsm.ticket.dto.request.CreateTicketRequest;
+import com.nisa.itsm.ticket.dto.request.UpdateTicketStatusRequest;
 import com.nisa.itsm.ticket.dto.response.TicketDetailResponse;
 import com.nisa.itsm.ticket.dto.response.TicketSummaryResponse;
 import com.nisa.itsm.ticket.service.TicketService;
@@ -51,5 +53,32 @@ public class TicketController {
                                a.getAuthority().equals("MANAGER"));
 
         return ResponseEntity.ok(ticketService.getTicketByIdAndCheckAccess(id, principal.getName(), isPrivileged));
+    }
+
+    @PutMapping("/{id}/assign")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER')")
+    public ResponseEntity<Void> assignTicket(
+            @PathVariable Long id,
+            @Valid @RequestBody AssignTicketRequest request) {
+        ticketService.assignTicket(id, request);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/{id}/status")
+    public ResponseEntity<Void> updateTicketStatus(@PathVariable Long id, @Valid @RequestBody UpdateTicketStatusRequest request) {
+        ticketService.updateTicketStatus(id, request);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/{id}/reopen")
+    public ResponseEntity<Void> reopenTicket(@PathVariable Long id) {
+        ticketService.reopenTicket(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/{id}/close")
+    public ResponseEntity<Void> closeTicket(@PathVariable Long id) {
+        ticketService.closeTicket(id);
+        return ResponseEntity.ok().build();
     }
 }

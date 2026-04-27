@@ -4,7 +4,9 @@ import com.nisa.itsm.category.entity.Category;
 import com.nisa.itsm.category.repository.CategoryRepository;
 import com.nisa.itsm.common.enums.TicketStatus;
 import com.nisa.itsm.common.exception.ResourceNotFoundException;
+import com.nisa.itsm.ticket.dto.request.AssignTicketRequest;
 import com.nisa.itsm.ticket.dto.request.CreateTicketRequest;
+import com.nisa.itsm.ticket.dto.request.UpdateTicketStatusRequest;
 import com.nisa.itsm.ticket.dto.response.TicketDetailResponse;
 import com.nisa.itsm.ticket.dto.response.TicketSummaryResponse;
 import com.nisa.itsm.ticket.entity.Ticket;
@@ -16,6 +18,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDateTime;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import com.nisa.itsm.common.enums.Role;
 
 import java.time.Year;
 import java.util.List;
@@ -62,7 +68,38 @@ public class TicketService {
 
     @Transactional(readOnly = true)
     public List<TicketSummaryResponse> getAllTickets() {
-        return ticketRepository.findAll().stream()
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        boolean isAdminOrManager = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ADMIN") || a.getAuthority().equals("MANAGER"));
+
+        boolean isAgent = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("AGENT"));
+
+        String username = auth.getName();
+
+        List<Ticket> tickets;
+
+        if (isAdminOrManager) {
+            tickets = ticketRepository.findAll();
+
+        } else if (isAgent) {
+
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            tickets = ticketRepository.findAllByAssigneeIdOrderByCreatedAtDesc(user.getId());
+
+        } else {
+            // CUSTOMER
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            tickets = ticketRepository.findAllByRequesterIdOrderByCreatedAtDesc(user.getId());
+        }
+
+        return tickets.stream()
                 .map(ticketMapper::toSummaryResponse)
                 .collect(Collectors.toList());
     }
@@ -87,5 +124,107 @@ public class TicketService {
         }
 
         return ticketMapper.toDetailResponse(ticket);
+    }
+
+    @Transactional
+    public void assignTicket(Long id, AssignTicketRequest request) {
+
+        Ticket ticket = ticketRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Ticket not found"));
+
+        User assignee = userRepository.findById(request.getAssigneeId())
+                .orElseThrow(() -> new RuntimeException("Assignee user not found"));
+
+        if (!assignee.getRoles().contains(Role.AGENT)) {
+            throw new RuntimeException("Assignee must have AGENT role");
+        }
+
+        ticket.setAssignee(assignee);
+
+        if (ticket.getStatus() == TicketStatus.NEW) {
+            ticket.setStatus(TicketStatus.IN_PROGRESS);
+        }
+
+        ticketRepository.save(ticket);
+    }
+
+    @Transactional
+    public void updateTicketStatus(Long id, UpdateTicketStatusRequest request) {
+
+        Ticket ticket = ticketRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Ticket not found"));
+
+        TicketStatus currentStatus = ticket.getStatus();
+        TicketStatus newStatus = request.getStatus();
+
+        if (!isValidTransition(currentStatus, newStatus)) {
+            throw new RuntimeException("Invalid status transition: "
+                    + currentStatus + " -> " + newStatus);
+        }
+
+        ticket.setStatus(newStatus);
+
+        // resolvedAt set
+        if (newStatus == TicketStatus.RESOLVED) {
+            ticket.setResolvedAt(LocalDateTime.now());
+        }
+
+        // closedAt set
+        if (newStatus == TicketStatus.CLOSED) {
+            ticket.setClosedAt(LocalDateTime.now());
+        }
+
+        ticketRepository.save(ticket);
+    }
+
+    private boolean isValidTransition(TicketStatus current, TicketStatus next) {
+
+        return switch (current) {
+            case NEW -> next == TicketStatus.IN_PROGRESS;
+
+            case IN_PROGRESS ->
+                    next == TicketStatus.WAITING_FOR_CUSTOMER ||
+                            next == TicketStatus.RESOLVED;
+
+            case WAITING_FOR_CUSTOMER ->
+                    next == TicketStatus.IN_PROGRESS;
+
+            case RESOLVED ->
+                    next == TicketStatus.CLOSED ||
+                            next == TicketStatus.IN_PROGRESS; // reopen
+
+            default -> false;
+        };
+    }
+
+    @Transactional
+    public void reopenTicket(Long id) {
+
+        Ticket ticket = ticketRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Ticket not found"));
+
+        if (ticket.getStatus() != TicketStatus.RESOLVED) {
+            throw new RuntimeException("Only RESOLVED tickets can be reopened");
+        }
+
+        ticket.setStatus(TicketStatus.IN_PROGRESS);
+
+        ticketRepository.save(ticket);
+    }
+
+    @Transactional
+    public void closeTicket(Long id) {
+
+        Ticket ticket = ticketRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Ticket not found"));
+
+        if (ticket.getStatus() != TicketStatus.RESOLVED) {
+            throw new RuntimeException("Only RESOLVED tickets can be closed");
+        }
+
+        ticket.setStatus(TicketStatus.CLOSED);
+        ticket.setClosedAt(LocalDateTime.now());
+
+        ticketRepository.save(ticket);
     }
 }
