@@ -149,10 +149,27 @@ public class TicketService {
     }
 
     @Transactional
-    public void updateTicketStatus(Long id, UpdateTicketStatusRequest request) {
+    public void updateTicketStatus(Long id, UpdateTicketStatusRequest request, String username, Authentication authentication) {
 
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Ticket not found"));
+
+        boolean isPrivileged = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ADMIN") || a.getAuthority().equals("MANAGER"));
+
+        boolean isAgent = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("AGENT"));
+
+        if (isAgent) {
+            if (ticket.getAssignee() == null ||
+                    !ticket.getAssignee().getUsername().equals(username)) {
+                throw new AccessDeniedException("Agent can only update assigned tickets");
+            }
+        }
+
+        if (!isPrivileged && !isAgent) {
+            throw new AccessDeniedException("Not allowed to update ticket status");
+        }
 
         TicketStatus currentStatus = ticket.getStatus();
         TicketStatus newStatus = request.getStatus();
@@ -164,12 +181,10 @@ public class TicketService {
 
         ticket.setStatus(newStatus);
 
-        // resolvedAt set
         if (newStatus == TicketStatus.RESOLVED) {
             ticket.setResolvedAt(LocalDateTime.now());
         }
 
-        // closedAt set
         if (newStatus == TicketStatus.CLOSED) {
             ticket.setClosedAt(LocalDateTime.now());
         }
@@ -198,25 +213,64 @@ public class TicketService {
     }
 
     @Transactional
-    public void reopenTicket(Long id) {
+    public void reopenTicket(Long id, String username, Authentication authentication) {
 
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Ticket not found"));
+
+        boolean isPrivileged = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ADMIN") || a.getAuthority().equals("MANAGER"));
+
+        boolean isAgent = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("AGENT"));
+
+        boolean isCustomer = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("CUSTOMER"));
+
+        if (isAgent) {
+            if (ticket.getAssignee() == null ||
+                    !ticket.getAssignee().getUsername().equals(username)) {
+                throw new AccessDeniedException("Agent can only reopen assigned tickets");
+            }
+        }
+
+        if (isCustomer) {
+            if (!ticket.getRequester().getUsername().equals(username)) {
+                throw new AccessDeniedException("Customer can only reopen own tickets");
+            }
+        }
 
         if (ticket.getStatus() != TicketStatus.RESOLVED) {
             throw new RuntimeException("Only RESOLVED tickets can be reopened");
         }
 
         ticket.setStatus(TicketStatus.IN_PROGRESS);
+        ticket.setResolvedAt(null); // 🔥 küçük refine
 
         ticketRepository.save(ticket);
     }
 
     @Transactional
-    public void closeTicket(Long id) {
+    public void closeTicket(Long id, String username, Authentication authentication) {
 
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Ticket not found"));
+
+        boolean isPrivileged = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ADMIN") || a.getAuthority().equals("MANAGER"));
+
+        boolean isCustomer = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("CUSTOMER"));
+
+        if (isCustomer) {
+            if (!ticket.getRequester().getUsername().equals(username)) {
+                throw new AccessDeniedException("Customer can only close own tickets");
+            }
+        }
+
+        if (!isPrivileged && !isCustomer) {
+            throw new AccessDeniedException("Not allowed to close ticket");
+        }
 
         if (ticket.getStatus() != TicketStatus.RESOLVED) {
             throw new RuntimeException("Only RESOLVED tickets can be closed");

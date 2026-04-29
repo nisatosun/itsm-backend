@@ -65,20 +65,36 @@ public class TicketController {
     }
 
     @PutMapping("/{id}/status")
-    public ResponseEntity<Void> updateTicketStatus(@PathVariable Long id, @Valid @RequestBody UpdateTicketStatusRequest request) {
-        ticketService.updateTicketStatus(id, request);
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'AGENT')")
+    public ResponseEntity<Void> updateTicketStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateTicketStatusRequest request,
+            Principal principal,
+            Authentication authentication) {
+
+        ticketService.updateTicketStatus(id, request, principal.getName(), authentication);
         return ResponseEntity.ok().build();
     }
 
     @PutMapping("/{id}/reopen")
-    public ResponseEntity<Void> reopenTicket(@PathVariable Long id) {
-        ticketService.reopenTicket(id);
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'AGENT', 'CUSTOMER')")
+    public ResponseEntity<Void> reopenTicket(
+            @PathVariable Long id,
+            Principal principal,
+            Authentication authentication) {
+
+        ticketService.reopenTicket(id, principal.getName(), authentication);
         return ResponseEntity.ok().build();
     }
 
     @PutMapping("/{id}/close")
-    public ResponseEntity<Void> closeTicket(@PathVariable Long id) {
-        ticketService.closeTicket(id);
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'CUSTOMER')")
+    public ResponseEntity<Void> closeTicket(
+            @PathVariable Long id,
+            Principal principal,
+            Authentication authentication) {
+
+        ticketService.closeTicket(id, principal.getName(), authentication);
         return ResponseEntity.ok().build();
     }
 }
