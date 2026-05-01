@@ -69,7 +69,12 @@ public class CommentService {
 
         validateTicketAccess(ticket, username, authentication);
 
-        boolean isCustomer = hasAuthority(authentication, "CUSTOMER");
+        boolean isPrivileged =
+                hasAuthority(authentication, "ADMIN")
+                        || hasAuthority(authentication, "AGENT")
+                        || hasAuthority(authentication, "MANAGER");
+
+        boolean isCustomer = hasAuthority(authentication, "CUSTOMER") && !isPrivileged;
 
         List<Comment> comments = isCustomer
                 ? commentRepository.findAllByTicketIdAndInternalFalseOrderByCreatedAtAsc(ticketId)

@@ -149,7 +149,8 @@ public class TicketService {
     }
 
     @Transactional
-    public void updateTicketStatus(Long id, UpdateTicketStatusRequest request, String username, Authentication authentication) {
+    public void updateTicketStatus(Long id, UpdateTicketStatusRequest request, String username,
+            Authentication authentication) {
 
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Ticket not found"));
@@ -198,15 +199,15 @@ public class TicketService {
             case NEW -> next == TicketStatus.IN_PROGRESS;
 
             case IN_PROGRESS ->
-                    next == TicketStatus.WAITING_FOR_CUSTOMER ||
-                            next == TicketStatus.RESOLVED;
+                next == TicketStatus.WAITING_FOR_CUSTOMER ||
+                        next == TicketStatus.RESOLVED;
 
             case WAITING_FOR_CUSTOMER ->
-                    next == TicketStatus.IN_PROGRESS;
+                next == TicketStatus.IN_PROGRESS;
 
             case RESOLVED ->
-                    next == TicketStatus.CLOSED ||
-                            next == TicketStatus.IN_PROGRESS; // reopen
+                next == TicketStatus.CLOSED ||
+                        next == TicketStatus.IN_PROGRESS; // reopen
 
             default -> false;
         };
