@@ -1,5 +1,7 @@
 package com.nisa.itsm.audit.entity;
 
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.*;
 import lombok.*;
 

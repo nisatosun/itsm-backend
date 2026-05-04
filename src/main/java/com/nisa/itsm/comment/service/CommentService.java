@@ -53,7 +53,6 @@ public class CommentService {
                         .entityType("TICKET")
                         .entityId(ticket.getId())
                         .action("COMMENT_ADDED")
-                        .performedBy(author.getId())
                         .details("Comment added to ticket " + ticket.getId())
                         .createdAt(LocalDateTime.now())
                         .build()

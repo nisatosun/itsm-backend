@@ -61,3 +61,4 @@ public class Ticket extends BaseEntity {
     @Column(name = "closed_at")
     private LocalDateTime closedAt;
 }
+
