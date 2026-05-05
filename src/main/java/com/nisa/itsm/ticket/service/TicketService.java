@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import com.nisa.itsm.common.enums.Role;
+import com.nisa.itsm.sla.service.SlaService;
 
 import java.time.Year;
 import java.util.List;
@@ -35,6 +36,7 @@ public class TicketService {
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final TicketMapper ticketMapper;
+    private final SlaService slaService;
 
     @Transactional
     public TicketDetailResponse createTicket(CreateTicketRequest request, String username) {
@@ -62,6 +64,8 @@ public class TicketService {
         ticket.setTicketNo(ticketNo);
 
         ticket = ticketRepository.save(ticket);
+
+        slaService.initializeForTicket(ticket);
 
         return ticketMapper.toDetailResponse(ticket);
     }

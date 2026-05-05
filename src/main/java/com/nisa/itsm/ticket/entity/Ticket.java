@@ -60,5 +60,7 @@ public class Ticket extends BaseEntity {
 
     @Column(name = "closed_at")
     private LocalDateTime closedAt;
-}
 
+    @OneToOne(mappedBy = "ticket", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private com.nisa.itsm.sla.entity.SlaTracking slaTracking;
+}
