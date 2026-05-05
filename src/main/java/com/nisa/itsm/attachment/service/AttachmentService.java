@@ -22,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
-import com.nisa.itsm.audit.annotation.Audit;
 
 import java.io.IOException;
 import java.nio.file.*;
@@ -86,7 +85,8 @@ public class AttachmentService {
                     AuditLog.builder()
                             .entityType("TICKET")
                             .entityId(ticket.getId())
-                            .action("ATTACHMENT_UPLOADED")                            .performedBy(user.getId())
+                            .action("ATTACHMENT_UPLOADED")
+                            .performedBy(user.getId())
                             .details("Attachment uploaded: " + originalFilename)
                             .createdAt(LocalDateTime.now())
                             .build()

@@ -16,8 +16,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.time.LocalDateTime;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -39,11 +39,21 @@ public class CommentService {
 
         validateTicketAccess(ticket, username, authentication);
 
+        boolean isPrivileged = hasAuthority(authentication, "ADMIN")
+                || hasAuthority(authentication, "AGENT")
+                || hasAuthority(authentication, "MANAGER");
+
+        boolean internal = Boolean.TRUE.equals(request.getInternal());
+
+        if (!isPrivileged && internal) {
+            throw new AccessDeniedException("Customers cannot create internal comments");
+        }
+
         Comment comment = Comment.builder()
                 .ticket(ticket)
                 .author(author)
                 .content(request.getContent())
-                .internal(request.getInternal())
+                .internal(internal)
                 .build();
 
         Comment saved = commentRepository.save(comment);
@@ -53,6 +63,7 @@ public class CommentService {
                         .entityType("TICKET")
                         .entityId(ticket.getId())
                         .action("COMMENT_ADDED")
+                        .performedBy(author.getId())
                         .details("Comment added to ticket " + ticket.getId())
                         .createdAt(LocalDateTime.now())
                         .build()
@@ -68,16 +79,17 @@ public class CommentService {
 
         validateTicketAccess(ticket, username, authentication);
 
-        boolean isPrivileged =
-                hasAuthority(authentication, "ADMIN")
-                        || hasAuthority(authentication, "AGENT")
-                        || hasAuthority(authentication, "MANAGER");
+        boolean isPrivileged = hasAuthority(authentication, "ADMIN")
+                || hasAuthority(authentication, "AGENT")
+                || hasAuthority(authentication, "MANAGER");
 
-        boolean isCustomer = hasAuthority(authentication, "CUSTOMER") && !isPrivileged;
+        List<Comment> comments;
 
-        List<Comment> comments = isCustomer
-                ? commentRepository.findAllByTicketIdAndInternalFalseOrderByCreatedAtAsc(ticketId)
-                : commentRepository.findAllByTicketIdOrderByCreatedAtAsc(ticketId);
+        if (isPrivileged) {
+            comments = commentRepository.findAllByTicketIdOrderByCreatedAtAsc(ticketId);
+        } else {
+            comments = commentRepository.findAllByTicketIdAndInternalFalseOrderByCreatedAtAsc(ticketId);
+        }
 
         return comments.stream()
                 .map(this::toResponse)
