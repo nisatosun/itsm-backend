@@ -36,4 +36,9 @@ public class TicketDetailResponse {
     private LocalDateTime updatedAt;
     private LocalDateTime resolvedAt;
     private LocalDateTime closedAt;
+
+    private LocalDateTime slaDueDate;
+    private Long slaRemainingMinutes;
+    private Boolean slaBreached;
+    private String slaWarningLevel;
 }

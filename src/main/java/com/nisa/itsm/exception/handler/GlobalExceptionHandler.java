@@ -12,8 +12,10 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
+import org.springframework.http.ResponseEntity;
+import java.time.LocalDateTime;
 import java.util.List;
+
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
@@ -135,5 +137,21 @@ public class GlobalExceptionHandler {
                                 ex.getMessage(),
                                 request.getRequestURI(),
                                 List.of());
+        }
+
+        @ExceptionHandler(IllegalArgumentException.class)
+        public ResponseEntity<ErrorResponse> handleIllegalArgumentException(
+                IllegalArgumentException ex,
+                HttpServletRequest request
+        ) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                        HttpStatus.BAD_REQUEST.value(),
+                        HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                        ex.getMessage(),
+                        request.getRequestURI(),
+                        List.of()
+                );
+
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
         }
 }

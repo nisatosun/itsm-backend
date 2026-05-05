@@ -10,4 +10,7 @@ import java.util.Optional;
 @Repository
 public interface SlaPolicyRepository extends JpaRepository<SlaPolicy, Long> {
     Optional<SlaPolicy> findByPriorityAndActiveTrue(Priority priority);
+
+    boolean existsByPriority(com.nisa.itsm.common.enums.Priority priority);
+
 }

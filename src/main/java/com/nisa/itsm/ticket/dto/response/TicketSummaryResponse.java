@@ -29,4 +29,9 @@ public class TicketSummaryResponse {
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    private LocalDateTime slaDueDate;
+    private Long slaRemainingMinutes;
+    private Boolean slaBreached;
+    private String slaWarningLevel;
 }

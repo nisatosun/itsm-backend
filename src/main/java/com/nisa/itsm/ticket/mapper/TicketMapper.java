@@ -4,6 +4,10 @@ import com.nisa.itsm.ticket.dto.response.TicketDetailResponse;
 import com.nisa.itsm.ticket.dto.response.TicketSummaryResponse;
 import com.nisa.itsm.ticket.entity.Ticket;
 import org.springframework.stereotype.Component;
+import com.nisa.itsm.sla.entity.SlaTracking;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import com.nisa.itsm.sla.entity.SlaTracking;
 
 @Component
 public class TicketMapper {
@@ -39,6 +43,28 @@ public class TicketMapper {
 
         response.setCreatedAt(ticket.getCreatedAt());
         response.setUpdatedAt(ticket.getUpdatedAt());
+
+        SlaTracking tracking = ticket.getSlaTracking();
+
+        if (tracking != null) {
+            response.setSlaDueDate(tracking.getDueDate());
+            response.setSlaBreached(tracking.getBreached());
+
+            long remaining = Duration.between(LocalDateTime.now(), tracking.getDueDate()).toMinutes();
+            remaining = Math.max(remaining, 0);
+
+            response.setSlaRemainingMinutes(remaining);
+
+            if (Boolean.TRUE.equals(tracking.getBreached())) {
+                response.setSlaWarningLevel("BREACHED");
+            } else if (remaining <= 60) {
+                response.setSlaWarningLevel("CRITICAL");
+            } else if (remaining <= 240) {
+                response.setSlaWarningLevel("WARNING");
+            } else {
+                response.setSlaWarningLevel("NONE");
+            }
+        }
 
         return response;
     }
@@ -81,6 +107,29 @@ public class TicketMapper {
         response.setUpdatedAt(ticket.getUpdatedAt());
         response.setResolvedAt(ticket.getResolvedAt());
         response.setClosedAt(ticket.getClosedAt());
+
+
+        SlaTracking tracking = ticket.getSlaTracking();
+
+        if (tracking != null) {
+            response.setSlaDueDate(tracking.getDueDate());
+            response.setSlaBreached(tracking.getBreached());
+
+            long remaining = Duration.between(LocalDateTime.now(), tracking.getDueDate()).toMinutes();
+            remaining = Math.max(remaining, 0);
+
+            response.setSlaRemainingMinutes(remaining);
+
+            if (Boolean.TRUE.equals(tracking.getBreached())) {
+                response.setSlaWarningLevel("BREACHED");
+            } else if (remaining <= 60) {
+                response.setSlaWarningLevel("CRITICAL");
+            } else if (remaining <= 240) {
+                response.setSlaWarningLevel("WARNING");
+            } else {
+                response.setSlaWarningLevel("NONE");
+            }
+        }
 
         return response;
     }
