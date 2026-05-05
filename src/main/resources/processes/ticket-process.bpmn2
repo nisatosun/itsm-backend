@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn2:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                   xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                   xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                   xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                   xmlns:tns="http://www.jboss.org/drools"
+                   id="Definitions_1"
+                   targetNamespace="http://www.jboss.org/drools">
+
+  <bpmn2:process id="com.nisa.itsm.workflow.ticketProcess" tns:packageName="com.nisa.itsm.workflow" name="Ticket Process" isExecutable="true">
+
+    <bpmn2:startEvent id="StartEvent_1" name="StartProcess">
+      <bpmn2:outgoing>SequenceFlow_1</bpmn2:outgoing>
+    </bpmn2:startEvent>
+
+    <bpmn2:sequenceFlow id="SequenceFlow_1" sourceRef="StartEvent_1" targetRef="ScriptTask_1"/>
+
+    <bpmn2:scriptTask id="ScriptTask_1" name="Log Ticket Creation" scriptFormat="http://www.java.com/java">
+      <bpmn2:incoming>SequenceFlow_1</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_2</bpmn2:outgoing>
+      <bpmn2:script>
+        System.out.println("jBPM Process Started for Ticket: " + kcontext.getVariable("ticketId") + " with Priority: " + kcontext.getVariable("priority"));
+      </bpmn2:script>
+    </bpmn2:scriptTask>
+
+    <bpmn2:sequenceFlow id="SequenceFlow_2" sourceRef="ScriptTask_1" targetRef="EndEvent_1"/>
+
+    <bpmn2:endEvent id="EndEvent_1" name="EndProcess">
+      <bpmn2:incoming>SequenceFlow_2</bpmn2:incoming>
+    </bpmn2:endEvent>
+
+  </bpmn2:process>
+</bpmn2:definitions>
+

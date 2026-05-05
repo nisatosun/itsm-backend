@@ -23,10 +23,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import com.nisa.itsm.common.enums.Role;
 import com.nisa.itsm.sla.service.SlaService;
+import com.nisa.itsm.workflow.service.WorkflowService;
 
 import java.time.Year;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +40,7 @@ public class TicketService {
     private final CategoryRepository categoryRepository;
     private final TicketMapper ticketMapper;
     private final SlaService slaService;
+    private final WorkflowService workflowService;
 
     @Transactional
     public TicketDetailResponse createTicket(CreateTicketRequest request, String username) {
@@ -62,6 +66,17 @@ public class TicketService {
         String year = String.valueOf(Year.now().getValue());
         String ticketNo = String.format("TCK-%s-%06d", year, ticket.getId());
         ticket.setTicketNo(ticketNo);
+
+        Map<String, Object> workflowVariables = new HashMap<>();
+        workflowVariables.put("ticketId", ticket.getId());
+        workflowVariables.put("ticketNo", ticket.getTicketNo());
+        workflowVariables.put("priority", ticket.getPriority().name());
+        workflowVariables.put("status", ticket.getStatus().name());
+
+        Long processInstanceId =
+                workflowService.startTicketProcess(workflowVariables);
+
+        ticket.setProcessInstanceId(processInstanceId);
 
         ticket = ticketRepository.save(ticket);
 
