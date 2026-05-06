@@ -6,7 +6,9 @@ import com.nisa.itsm.comment.dto.request.CreateCommentRequest;
 import com.nisa.itsm.comment.dto.response.CommentResponse;
 import com.nisa.itsm.comment.entity.Comment;
 import com.nisa.itsm.comment.repository.CommentRepository;
+import com.nisa.itsm.common.enums.Role;
 import com.nisa.itsm.common.exception.ResourceNotFoundException;
+import com.nisa.itsm.notification.service.NotificationService;
 import com.nisa.itsm.ticket.entity.Ticket;
 import com.nisa.itsm.ticket.repository.TicketRepository;
 import com.nisa.itsm.user.entity.User;
@@ -28,6 +30,7 @@ public class CommentService {
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
     private final AuditLogRepository auditLogRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public CommentResponse addComment(Long ticketId, CreateCommentRequest request, String username, Authentication authentication) {
@@ -57,6 +60,27 @@ public class CommentService {
                 .build();
 
         Comment saved = commentRepository.save(comment);
+
+        boolean isCustomer =
+                author.getRoles().contains(Role.CUSTOMER);
+
+        if (!comment.getInternal()) {
+
+            if (isCustomer && ticket.getAssignee() != null) {
+
+                notificationService.createCommentNotification(
+                        ticket.getAssignee(),
+                        ticket
+                );
+
+            } else if (!isCustomer) {
+
+                notificationService.createCommentNotification(
+                        ticket.getRequester(),
+                        ticket
+                );
+            }
+        }
 
         auditLogRepository.save(
                 AuditLog.builder()

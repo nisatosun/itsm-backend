@@ -106,4 +106,44 @@ public class NotificationService {
                 .createdAt(notification.getCreatedAt())
                 .build();
     }
+
+    public void createCommentNotification(
+            User user,
+            Ticket ticket
+    ) {
+
+        Notification notification = new Notification();
+
+        notification.setUser(user);
+        notification.setTitle("New Ticket Comment");
+        notification.setMessage(
+                "New comment added to ticket "
+                        + ticket.getTicketNo()
+        );
+        notification.setType("COMMENT_ADDED");
+        notification.setRead(false);
+
+        notificationRepository.save(notification);
+    }
+
+    public void createSlaRiskNotification(
+            User user,
+            Ticket ticket
+    ) {
+        if (user == null) {
+            return;
+        }
+
+        Notification notification = new Notification();
+        notification.setUser(user);
+        notification.setTitle("SLA Risk");
+        notification.setMessage(
+                "Ticket " + ticket.getTicketNo()
+                        + " is close to SLA breach."
+        );
+        notification.setType("SLA_RISK");
+        notification.setRead(false);
+
+        notificationRepository.save(notification);
+    }
 }
