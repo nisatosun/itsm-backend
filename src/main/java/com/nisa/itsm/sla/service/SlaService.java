@@ -1,5 +1,6 @@
 package com.nisa.itsm.sla.service;
 
+import com.nisa.itsm.audit.service.AuditLogService;
 import com.nisa.itsm.common.exception.ResourceNotFoundException;
 import com.nisa.itsm.sla.dto.request.CreateSlaPolicyRequest;
 import com.nisa.itsm.sla.dto.request.UpdateSlaPolicyRequest;
@@ -13,7 +14,6 @@ import com.nisa.itsm.ticket.entity.Ticket;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.nisa.itsm.audit.service.AuditLogService;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -52,17 +52,14 @@ public class SlaService {
     }
 
     public SlaPolicyResponse createPolicy(CreateSlaPolicyRequest request) {
-        if (policyRepository.existsByPriority(request.getPriority())) {
-            throw new IllegalArgumentException("SLA policy already exists for priority: " + request.getPriority());
-        }
-
         SlaPolicy policy = new SlaPolicy();
         policy.setPriority(request.getPriority());
         policy.setResponseTimeHours(request.getResponseTimeHours());
         policy.setResolutionTimeHours(request.getResolutionTimeHours());
         policy.setActive(request.getActive() != null ? request.getActive() : true);
 
-        return toPolicyResponse(policyRepository.save(policy));
+        SlaPolicy savedPolicy = policyRepository.save(policy);
+        return toPolicyResponse(savedPolicy);
     }
 
     public SlaPolicyResponse updatePolicy(Long id, UpdateSlaPolicyRequest request) {
@@ -101,7 +98,7 @@ public class SlaService {
                 "SLA_POLICY",
                 savedPolicy.getId(),
                 "SLA_POLICY_UPDATED",
-                savedPolicy.getId(),
+                1L,
                 "SLA policy updated for priority: " + savedPolicy.getPriority(),
                 oldValue,
                 newValue
