@@ -35,6 +35,12 @@ public class AuditLog {
     @Column(name = "description", columnDefinition = "TEXT")
     private String details;
 
+    @Column(name = "old_value", columnDefinition = "TEXT")
+    private String oldValue;
+
+    @Column(name = "new_value", columnDefinition = "TEXT")
+    private String newValue;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 }

@@ -13,6 +13,7 @@ import com.nisa.itsm.user.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import com.nisa.itsm.audit.service.AuditLogService;
 
 import java.util.List;
 import java.util.Set;
@@ -22,9 +23,14 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final AuditLogService auditLogService;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(
+            UserRepository userRepository,
+            AuditLogService auditLogService
+    ) {
         this.userRepository = userRepository;
+        this.auditLogService = auditLogService;
     }
 
     public UserResponse createUser(UserCreateRequest request) {
@@ -90,8 +96,22 @@ public class UserService {
                 .map(roleStr -> Role.valueOf(roleStr.toUpperCase()))
                 .collect(Collectors.toSet());
 
+        String oldRoles = user.getRoles().toString();
+
         user.setRoles(roles);
         User savedUser = userRepository.save(user);
+
+        String newRoles = user.getRoles().toString();
+
+        auditLogService.logAction(
+                "USER",
+                user.getId(),
+                "ROLE_CHANGED",
+                user.getId(),
+                "User roles updated",
+                oldRoles,
+                newRoles
+        );
 
         return mapToResponse(savedUser);
     }

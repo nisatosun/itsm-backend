@@ -25,6 +25,7 @@ import com.nisa.itsm.common.enums.Role;
 import com.nisa.itsm.sla.service.SlaService;
 import com.nisa.itsm.workflow.service.WorkflowService;
 import com.nisa.itsm.notification.service.NotificationService;
+import com.nisa.itsm.audit.service.AuditLogService;
 
 import java.time.Year;
 import java.util.List;
@@ -43,6 +44,7 @@ public class TicketService {
     private final SlaService slaService;
     private final WorkflowService workflowService;
     private final NotificationService notificationService;
+    private final AuditLogService auditLogService;
 
     @Transactional
     public TicketDetailResponse createTicket(CreateTicketRequest request, String username) {
@@ -167,7 +169,13 @@ public class TicketService {
             throw new RuntimeException("Assignee must have AGENT role");
         }
 
+        String oldAssignee = ticket.getAssignee() != null
+                ? ticket.getAssignee().getUsername()
+                : "UNASSIGNED";
+
         ticket.setAssignee(assignee);
+
+        String newAssignee = assignee.getUsername();
 
         notificationService.createNotification(
                 assignee,
@@ -181,6 +189,16 @@ public class TicketService {
         }
 
         ticketRepository.save(ticket);
+
+        auditLogService.logAction(
+                "TICKET",
+                ticket.getId(),
+                "TICKET_ASSIGNED",
+                assignee.getId(),
+                "Ticket assigned",
+                oldAssignee,
+                newAssignee
+        );
     }
 
     @Transactional

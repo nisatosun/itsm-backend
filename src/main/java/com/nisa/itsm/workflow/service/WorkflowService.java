@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import com.nisa.itsm.notification.service.NotificationService;
+import com.nisa.itsm.audit.service.AuditLogService;
 
 import java.util.List;
 import java.util.Map;
@@ -27,6 +28,7 @@ public class WorkflowService {
     private final UserRepository userRepository;
     private final WorkflowHistoryRepository workflowHistoryRepository;
     private final NotificationService notificationService;
+    private final AuditLogService auditLogService;
 
     public Long startTicketProcess(Map<String, Object> variables) {
 
@@ -62,6 +64,16 @@ public class WorkflowService {
         );
 
         ticketRepository.save(ticket);
+
+        auditLogService.logAction(
+                "TICKET",
+                ticket.getId(),
+                "STATUS_CHANGED",
+                user.getId(),
+                "Ticket status changed via workflow",
+                oldStatus.name(),
+                request.getTargetStatus().name()
+        );
 
         WorkflowHistory history = WorkflowHistory.builder()
                 .ticket(ticket)

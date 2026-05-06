@@ -13,6 +13,7 @@ import com.nisa.itsm.ticket.entity.Ticket;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.nisa.itsm.audit.service.AuditLogService;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -26,6 +27,7 @@ public class SlaService {
     private final SlaPolicyRepository policyRepository;
     private final SlaTrackingRepository trackingRepository;
     private final SlaCalculatorService calculatorService;
+    private final AuditLogService auditLogService;
 
     public void initializeForTicket(Ticket ticket) {
         SlaPolicy policy = policyRepository
@@ -67,6 +69,10 @@ public class SlaService {
         SlaPolicy policy = policyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("SLA policy not found"));
 
+        Integer oldResponseHours = policy.getResponseTimeHours();
+        Integer oldResolutionHours = policy.getResolutionTimeHours();
+        Boolean oldActive = policy.getActive();
+
         if (request.getResponseTimeHours() != null) {
             policy.setResponseTimeHours(request.getResponseTimeHours());
         }
@@ -79,7 +85,29 @@ public class SlaService {
             policy.setActive(request.getActive());
         }
 
-        return toPolicyResponse(policyRepository.save(policy));
+        SlaPolicy savedPolicy = policyRepository.save(policy);
+
+        String oldValue =
+                "response=" + oldResponseHours +
+                        ", resolution=" + oldResolutionHours +
+                        ", active=" + oldActive;
+
+        String newValue =
+                "response=" + savedPolicy.getResponseTimeHours() +
+                        ", resolution=" + savedPolicy.getResolutionTimeHours() +
+                        ", active=" + savedPolicy.getActive();
+
+        auditLogService.logAction(
+                "SLA_POLICY",
+                savedPolicy.getId(),
+                "SLA_POLICY_UPDATED",
+                savedPolicy.getId(),
+                "SLA policy updated for priority: " + savedPolicy.getPriority(),
+                oldValue,
+                newValue
+        );
+
+        return toPolicyResponse(savedPolicy);
     }
 
     @Transactional(readOnly = true)
