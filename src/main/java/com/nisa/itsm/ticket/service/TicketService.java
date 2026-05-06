@@ -24,6 +24,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import com.nisa.itsm.common.enums.Role;
 import com.nisa.itsm.sla.service.SlaService;
 import com.nisa.itsm.workflow.service.WorkflowService;
+import com.nisa.itsm.notification.service.NotificationService;
 
 import java.time.Year;
 import java.util.List;
@@ -41,6 +42,7 @@ public class TicketService {
     private final TicketMapper ticketMapper;
     private final SlaService slaService;
     private final WorkflowService workflowService;
+    private final NotificationService notificationService;
 
     @Transactional
     public TicketDetailResponse createTicket(CreateTicketRequest request, String username) {
@@ -81,6 +83,13 @@ public class TicketService {
         ticket = ticketRepository.save(ticket);
 
         slaService.initializeForTicket(ticket);
+
+        notificationService.createNotification(
+                requester,
+                "Ticket Created",
+                "Your ticket " + ticket.getTicketNo() + " has been created.",
+                "TICKET_CREATED"
+        );
 
         return ticketMapper.toDetailResponse(ticket);
     }
@@ -159,6 +168,13 @@ public class TicketService {
         }
 
         ticket.setAssignee(assignee);
+
+        notificationService.createNotification(
+                assignee,
+                "Ticket Assigned",
+                "Ticket " + ticket.getTicketNo() + " assigned to you.",
+                "TICKET_ASSIGNED"
+        );
 
         if (ticket.getStatus() == TicketStatus.NEW) {
             ticket.setStatus(TicketStatus.IN_PROGRESS);
