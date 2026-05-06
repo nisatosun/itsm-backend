@@ -11,7 +11,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import com.nisa.itsm.audit.annotation.Audit;
 
 import java.security.Principal;
 import java.util.List;
@@ -23,7 +22,6 @@ public class AttachmentController {
 
     private final AttachmentService attachmentService;
 
-    @Audit(action = "ATTACHMENT_UPLOADED")
     @PostMapping("/tickets/{id}/attachments")
     public ResponseEntity<AttachmentResponse> uploadAttachment(
             @PathVariable Long id,

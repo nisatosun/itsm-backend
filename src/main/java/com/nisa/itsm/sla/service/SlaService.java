@@ -14,10 +14,14 @@ import com.nisa.itsm.ticket.entity.Ticket;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.nisa.itsm.user.entity.User;
+import com.nisa.itsm.user.repository.UserRepository;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +32,7 @@ public class SlaService {
     private final SlaTrackingRepository trackingRepository;
     private final SlaCalculatorService calculatorService;
     private final AuditLogService auditLogService;
+    private final UserRepository userRepository;
 
     public void initializeForTicket(Ticket ticket) {
         SlaPolicy policy = policyRepository
@@ -53,6 +58,16 @@ public class SlaService {
 
     public SlaPolicyResponse createPolicy(CreateSlaPolicyRequest request) {
         SlaPolicy policy = new SlaPolicy();
+
+        boolean changed =
+                !Objects.equals(policy.getResponseTimeHours(), request.getResponseTimeHours()) ||
+                        !Objects.equals(policy.getResolutionTimeHours(), request.getResolutionTimeHours()) ||
+                        !Objects.equals(policy.getActive(), request.getActive());
+
+        if (!changed) {
+            return toPolicyResponse(policy);
+        }
+
         policy.setPriority(request.getPriority());
         policy.setResponseTimeHours(request.getResponseTimeHours());
         policy.setResolutionTimeHours(request.getResolutionTimeHours());
@@ -94,11 +109,18 @@ public class SlaService {
                         ", resolution=" + savedPolicy.getResolutionTimeHours() +
                         ", active=" + savedPolicy.getActive();
 
+        String username = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        User currentUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
         auditLogService.logAction(
                 "SLA_POLICY",
                 savedPolicy.getId(),
                 "SLA_POLICY_UPDATED",
-                1L,
+                currentUser.getId(),
                 "SLA policy updated for priority: " + savedPolicy.getPriority(),
                 oldValue,
                 newValue
