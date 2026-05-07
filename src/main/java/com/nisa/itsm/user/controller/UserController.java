@@ -34,7 +34,8 @@ public class UserController {
     }
 
     @GetMapping
-    @Operation(summary = "Get all users", description = "Returns all users without pagination")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @Operation(summary = "Get all users", description = "Returns all users without pagination, only accessible by ADMIN")
     public List<UserResponse> getAllUsers() {
         return userService.getAllUsers();
     }

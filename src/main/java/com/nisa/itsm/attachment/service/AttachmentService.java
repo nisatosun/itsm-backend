@@ -223,6 +223,16 @@ public class AttachmentService {
         if (extension.isBlank() || !ALLOWED_EXTENSIONS.contains(extension)) {
             throw new BadRequestException("Invalid file extension: " + extension);
         }
+
+        List<String> allowedContentTypes = List.of(
+                "application/pdf",
+                "image/png",
+                "image/jpeg"
+        );
+
+        if (!allowedContentTypes.contains(file.getContentType())) {
+            throw new IllegalArgumentException("Unsupported file content type");
+        }
     }
 
     private void validateTicketAccess(Ticket ticket, User user) {
