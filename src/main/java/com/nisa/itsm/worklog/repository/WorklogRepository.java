@@ -8,5 +8,11 @@ import java.util.List;
 
 @Repository
 public interface WorklogRepository extends JpaRepository<Worklog, Long> {
+
     List<Worklog> findByTicketId(Long ticketId);
+
+    List<Worklog> findByUserId(Long userId); // toplam dakika hesaplamak için lazım
+
+    int countByUserId(Long userId); // kaç worklog entry var
 }
+

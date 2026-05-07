@@ -17,4 +17,8 @@ public interface SlaTrackingRepository extends JpaRepository<SlaTracking, Long> 
             LocalDateTime now,
             LocalDateTime warningLimit
     );
+
+    long countByBreachedTrue();
+
+    long countByBreachedFalse();
 }
