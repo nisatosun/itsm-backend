@@ -5,10 +5,17 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.nisa.itsm.common.enums.Priority;
 import com.nisa.itsm.common.enums.TicketStatus;
 import java.time.LocalDateTime;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.List;
 
-public interface TicketRepository extends JpaRepository<Ticket, Long> {
+public interface TicketRepository extends
+        JpaRepository<Ticket, Long>,
+        JpaSpecificationExecutor<Ticket> {
 
     List<Ticket> findAllByRequesterIdOrderByCreatedAtDesc(Long requesterId);
 
@@ -21,4 +28,22 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     long countByStatusIn(List<TicketStatus> statuses);
 
     long countByCreatedAtAfter(LocalDateTime dateTime);
+
+    Page<Ticket> findAll(Pageable pageable);
+
+    Page<Ticket> findAllByAssigneeId(Long assigneeId, Pageable pageable);
+
+    Page<Ticket> findAllByRequesterId(Long requesterId, Pageable pageable);
+
+    Page<Ticket> findAllByStatus(TicketStatus status, Pageable pageable);
+
+    Page<Ticket> findAllByAssigneeIdAndStatus(Long assigneeId, TicketStatus status, Pageable pageable);
+
+    Page<Ticket> findAllByRequesterIdAndStatus(Long requesterId, TicketStatus status, Pageable pageable);
+
+    Page<Ticket> findAllByCategoryId(Long categoryId, Pageable pageable);
+
+    Page<Ticket> findAllByAssigneeIdAndCategoryId(Long assigneeId, Long categoryId, Pageable pageable);
+
+    Page<Ticket> findAllByRequesterIdAndCategoryId(Long requesterId, Long categoryId, Pageable pageable);
 }

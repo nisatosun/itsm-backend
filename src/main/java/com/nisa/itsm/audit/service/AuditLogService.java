@@ -8,6 +8,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import java.util.List;
 
 @Service
@@ -20,11 +23,16 @@ public class AuditLogService {
     public List<AuditLogResponse> getAllLogs() {
 
         return auditLogRepository.findAll(
-                        Sort.by(Sort.Direction.DESC, "createdAt")
-                )
+                Sort.by(Sort.Direction.DESC, "createdAt"))
                 .stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    public Page<AuditLogResponse> getAllLogsPaged(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        return auditLogRepository.findAll(pageable)
+                .map(this::toResponse);
     }
 
     public AuditLogResponse getLogById(Long id) {
@@ -42,8 +50,7 @@ public class AuditLogService {
             Long performedBy,
             String details,
             String oldValue,
-            String newValue
-    ) {
+            String newValue) {
         AuditLog auditLog = AuditLog.builder()
                 .entityType(entityType)
                 .entityId(entityId)

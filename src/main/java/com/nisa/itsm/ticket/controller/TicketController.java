@@ -1,5 +1,6 @@
 package com.nisa.itsm.ticket.controller;
 
+import com.nisa.itsm.common.enums.TicketStatus;
 import com.nisa.itsm.ticket.dto.request.AssignTicketRequest;
 import com.nisa.itsm.ticket.dto.request.CreateTicketRequest;
 import com.nisa.itsm.ticket.dto.request.UpdateTicketStatusRequest;
@@ -12,6 +13,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import com.nisa.itsm.common.dto.PageResponse;
+import com.nisa.itsm.common.enums.Priority;
+import java.time.LocalDateTime;
 
 import java.security.Principal;
 import java.util.List;
@@ -32,8 +36,36 @@ public class TicketController {
 
     @GetMapping
     @PreAuthorize("hasAnyAuthority('ADMIN', 'AGENT', 'MANAGER')")
-    public ResponseEntity<List<TicketSummaryResponse>> getAllTickets() {
-        return ResponseEntity.ok(ticketService.getAllTickets());
+    public ResponseEntity<PageResponse<TicketSummaryResponse>> getAllTickets(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDirection,
+            @RequestParam(required = false) TicketStatus status,
+            @RequestParam(required = false) Priority priority,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) LocalDateTime createdAfter,
+            @RequestParam(required = false) LocalDateTime createdBefore,
+            @RequestParam(required = false) Long assigneeId,
+            @RequestParam(required = false) Long requesterId,
+            @RequestParam(required = false) Boolean slaBreached,
+            @RequestParam(required = false) String search) {
+
+        return ResponseEntity.ok(
+                ticketService.getAllTickets(
+                        page,
+                        size,
+                        sortBy,
+                        sortDirection,
+                        status,
+                        priority,
+                        categoryId,
+                        createdAfter,
+                        createdBefore,
+                        assigneeId,
+                        requesterId,
+                        slaBreached,
+                        search));
     }
 
     @GetMapping("/my")
@@ -43,14 +75,14 @@ public class TicketController {
 
     @GetMapping("/{id}")
     public ResponseEntity<TicketDetailResponse> getTicketById(
-            @PathVariable Long id, 
-            Principal principal, 
+            @PathVariable Long id,
+            Principal principal,
             Authentication authentication) {
-        
+
         boolean isPrivileged = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ADMIN") || 
-                               a.getAuthority().equals("AGENT") || 
-                               a.getAuthority().equals("MANAGER"));
+                .anyMatch(a -> a.getAuthority().equals("ADMIN") ||
+                        a.getAuthority().equals("AGENT") ||
+                        a.getAuthority().equals("MANAGER"));
 
         return ResponseEntity.ok(ticketService.getTicketByIdAndCheckAccess(id, principal.getName(), isPrivileged));
     }

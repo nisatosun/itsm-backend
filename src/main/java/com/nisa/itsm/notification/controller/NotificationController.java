@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import org.springframework.data.domain.Page;
 import java.util.List;
 
 @RestController
@@ -15,40 +16,43 @@ import java.util.List;
 @RequiredArgsConstructor
 public class NotificationController {
 
-    private final NotificationService notificationService;
+        private final NotificationService notificationService;
 
-    @GetMapping
-    public ResponseEntity<List<NotificationResponse>> getMyNotifications(
-            Principal principal
-    ) {
-        return ResponseEntity.ok(
-                notificationService.getMyNotifications(principal.getName())
-        );
-    }
+        @GetMapping
+        public ResponseEntity<List<NotificationResponse>> getMyNotifications(
+                        Principal principal) {
+                return ResponseEntity.ok(
+                                notificationService.getMyNotifications(principal.getName()));
+        }
 
-    @PutMapping("/{id}/read")
-    public ResponseEntity<Void> markAsRead(
-            @PathVariable Long id,
-            Principal principal
-    ) {
-        notificationService.markAsRead(id, principal.getName());
-        return ResponseEntity.noContent().build();
-    }
+        @GetMapping(params = { "page", "size" })
+        public ResponseEntity<Page<NotificationResponse>> getMyNotificationsPaged(
+                        Principal principal,
+                        @RequestParam(defaultValue = "0") int page,
+                        @RequestParam(defaultValue = "10") int size) {
+                return ResponseEntity.ok(
+                                notificationService.getMyNotificationsPaged(principal.getName(), page, size));
+        }
 
-    @PutMapping("/mark-all-read")
-    public ResponseEntity<Void> markAllAsRead(
-            Principal principal
-    ) {
-        notificationService.markAllAsRead(principal.getName());
-        return ResponseEntity.noContent().build();
-    }
+        @PutMapping("/{id}/read")
+        public ResponseEntity<Void> markAsRead(
+                        @PathVariable Long id,
+                        Principal principal) {
+                notificationService.markAsRead(id, principal.getName());
+                return ResponseEntity.noContent().build();
+        }
 
-    @GetMapping("/count")
-    public ResponseEntity<UnreadNotificationCountResponse> getUnreadCount(
-            Principal principal
-    ) {
-        return ResponseEntity.ok(
-                notificationService.getUnreadCount(principal.getName())
-        );
-    }
+        @PutMapping("/mark-all-read")
+        public ResponseEntity<Void> markAllAsRead(
+                        Principal principal) {
+                notificationService.markAllAsRead(principal.getName());
+                return ResponseEntity.noContent().build();
+        }
+
+        @GetMapping("/count")
+        public ResponseEntity<UnreadNotificationCountResponse> getUnreadCount(
+                        Principal principal) {
+                return ResponseEntity.ok(
+                                notificationService.getUnreadCount(principal.getName()));
+        }
 }

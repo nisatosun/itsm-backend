@@ -11,6 +11,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.nisa.itsm.ticket.entity.Ticket;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import java.util.List;
 
 @Service
@@ -27,6 +31,14 @@ public class NotificationService {
                 .stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    public Page<NotificationResponse> getMyNotificationsPaged(String username, int page, int size) {
+        User user = getUser(username);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        return notificationRepository.findByUserId(user.getId(), pageable)
+                .map(this::toResponse);
     }
 
     public void markAsRead(Long notificationId, String username) {
@@ -46,8 +58,7 @@ public class NotificationService {
     public void markAllAsRead(String username) {
         User user = getUser(username);
 
-        List<Notification> notifications =
-                notificationRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
+        List<Notification> notifications = notificationRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
 
         notifications.forEach(notification -> notification.setRead(true));
 
@@ -75,16 +86,14 @@ public class NotificationService {
 
     public void createStatusChangedNotification(
             User user,
-            Ticket ticket
-    ) {
+            Ticket ticket) {
         Notification notification = new Notification();
         notification.setUser(user);
         notification.setTitle("Ticket Status Updated");
         notification.setMessage(
                 "Ticket " + ticket.getTicketNo()
                         + " status changed to "
-                        + ticket.getStatus()
-        );
+                        + ticket.getStatus());
         notification.setType("STATUS_CHANGED");
         notification.setRead(false);
 
@@ -109,8 +118,7 @@ public class NotificationService {
 
     public void createCommentNotification(
             User user,
-            Ticket ticket
-    ) {
+            Ticket ticket) {
 
         Notification notification = new Notification();
 
@@ -118,8 +126,7 @@ public class NotificationService {
         notification.setTitle("New Ticket Comment");
         notification.setMessage(
                 "New comment added to ticket "
-                        + ticket.getTicketNo()
-        );
+                        + ticket.getTicketNo());
         notification.setType("COMMENT_ADDED");
         notification.setRead(false);
 
@@ -128,8 +135,7 @@ public class NotificationService {
 
     public void createSlaRiskNotification(
             User user,
-            Ticket ticket
-    ) {
+            Ticket ticket) {
         if (user == null) {
             return;
         }
@@ -139,8 +145,7 @@ public class NotificationService {
         notification.setTitle("SLA Risk");
         notification.setMessage(
                 "Ticket " + ticket.getTicketNo()
-                        + " is close to SLA breach."
-        );
+                        + " is close to SLA breach.");
         notification.setType("SLA_RISK");
         notification.setRead(false);
 

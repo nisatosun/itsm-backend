@@ -26,313 +26,358 @@ import com.nisa.itsm.sla.service.SlaService;
 import com.nisa.itsm.workflow.service.WorkflowService;
 import com.nisa.itsm.notification.service.NotificationService;
 import com.nisa.itsm.audit.service.AuditLogService;
+import com.nisa.itsm.common.dto.PageResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import com.nisa.itsm.common.enums.Priority;
+import com.nisa.itsm.ticket.specification.TicketSpecification;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.time.Year;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class TicketService {
 
-    private final TicketRepository ticketRepository;
-    private final UserRepository userRepository;
-    private final CategoryRepository categoryRepository;
-    private final TicketMapper ticketMapper;
-    private final SlaService slaService;
-    private final WorkflowService workflowService;
-    private final NotificationService notificationService;
-    private final AuditLogService auditLogService;
+        private final TicketRepository ticketRepository;
+        private final UserRepository userRepository;
+        private final CategoryRepository categoryRepository;
+        private final TicketMapper ticketMapper;
+        private final SlaService slaService;
+        private final WorkflowService workflowService;
+        private final NotificationService notificationService;
+        private final AuditLogService auditLogService;
 
-    @Transactional
-    public TicketDetailResponse createTicket(CreateTicketRequest request, String username) {
-        User requester = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
+                        "createdAt", "updatedAt", "priority", "status", "title");
 
-        Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+        @Transactional
+        public TicketDetailResponse createTicket(CreateTicketRequest request, String username) {
+                User requester = userRepository.findByUsername(username)
+                                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        Ticket ticket = new Ticket();
-        ticket.setTitle(request.getTitle());
-        ticket.setDescription(request.getDescription());
-        ticket.setCategory(category);
-        ticket.setPriority(request.getPriority());
-        ticket.setStatus(TicketStatus.NEW);
-        ticket.setRequester(requester);
-        ticket.setAssignee(null);
+                Category category = categoryRepository.findById(request.getCategoryId())
+                                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
-        ticket.setTicketNo("TEMP-" + System.currentTimeMillis());
+                Ticket ticket = new Ticket();
+                ticket.setTitle(request.getTitle());
+                ticket.setDescription(request.getDescription());
+                ticket.setCategory(category);
+                ticket.setPriority(request.getPriority());
+                ticket.setStatus(TicketStatus.NEW);
+                ticket.setRequester(requester);
+                ticket.setAssignee(null);
 
-        ticket = ticketRepository.save(ticket);
+                ticket.setTicketNo("TEMP-" + System.currentTimeMillis());
 
-        String year = String.valueOf(Year.now().getValue());
-        String ticketNo = String.format("TCK-%s-%06d", year, ticket.getId());
-        ticket.setTicketNo(ticketNo);
+                ticket = ticketRepository.save(ticket);
 
-        Map<String, Object> workflowVariables = new HashMap<>();
-        workflowVariables.put("ticketId", ticket.getId());
-        workflowVariables.put("ticketNo", ticket.getTicketNo());
-        workflowVariables.put("priority", ticket.getPriority().name());
-        workflowVariables.put("status", ticket.getStatus().name());
+                String year = String.valueOf(Year.now().getValue());
+                String ticketNo = String.format("TCK-%s-%06d", year, ticket.getId());
+                ticket.setTicketNo(ticketNo);
 
-        Long processInstanceId =
-                workflowService.startTicketProcess(workflowVariables);
+                Map<String, Object> workflowVariables = new HashMap<>();
+                workflowVariables.put("ticketId", ticket.getId());
+                workflowVariables.put("ticketNo", ticket.getTicketNo());
+                workflowVariables.put("priority", ticket.getPriority().name());
+                workflowVariables.put("status", ticket.getStatus().name());
 
-        ticket.setProcessInstanceId(processInstanceId);
+                Long processInstanceId = workflowService.startTicketProcess(workflowVariables);
 
-        ticket = ticketRepository.save(ticket);
+                ticket.setProcessInstanceId(processInstanceId);
 
-        slaService.initializeForTicket(ticket);
+                ticket = ticketRepository.save(ticket);
 
-        notificationService.createNotification(
-                requester,
-                "Ticket Created",
-                "Your ticket " + ticket.getTicketNo() + " has been created.",
-                "TICKET_CREATED"
-        );
+                slaService.initializeForTicket(ticket);
 
-        return ticketMapper.toDetailResponse(ticket);
-    }
+                notificationService.createNotification(
+                                requester,
+                                "Ticket Created",
+                                "Your ticket " + ticket.getTicketNo() + " has been created.",
+                                "TICKET_CREATED");
 
-    @Transactional(readOnly = true)
-    public List<TicketSummaryResponse> getAllTickets() {
-
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-        boolean isAdminOrManager = auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ADMIN") || a.getAuthority().equals("MANAGER"));
-
-        boolean isAgent = auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("AGENT"));
-
-        String username = auth.getName();
-
-        List<Ticket> tickets;
-
-        if (isAdminOrManager) {
-            tickets = ticketRepository.findAll();
-
-        } else if (isAgent) {
-
-            User user = userRepository.findByUsername(username)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-
-            tickets = ticketRepository.findAllByAssigneeIdOrderByCreatedAtDesc(user.getId());
-
-        } else {
-            // CUSTOMER
-            User user = userRepository.findByUsername(username)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-
-            tickets = ticketRepository.findAllByRequesterIdOrderByCreatedAtDesc(user.getId());
+                return ticketMapper.toDetailResponse(ticket);
         }
 
-        return tickets.stream()
-                .map(ticketMapper::toSummaryResponse)
-                .collect(Collectors.toList());
-    }
+        @Transactional(readOnly = true)
+        public PageResponse<TicketSummaryResponse> getAllTickets(
+                        int page,
+                        int size,
+                        String sortBy,
+                        String sortDirection,
+                        TicketStatus status,
+                        Priority priority,
+                        Long categoryId,
+                        LocalDateTime createdAfter,
+                        LocalDateTime createdBefore,
+                        Long assigneeId,
+                        Long requesterId,
+                        Boolean slaBreached,
+                        String search) {
 
-    @Transactional(readOnly = true)
-    public List<TicketSummaryResponse> getMyTickets(String username) {
-        User requester = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                if (sortBy == null || sortBy.isBlank()) {
+                        sortBy = "createdAt";
+                }
 
-        return ticketRepository.findAllByRequesterIdOrderByCreatedAtDesc(requester.getId()).stream()
-                .map(ticketMapper::toSummaryResponse)
-                .collect(Collectors.toList());
-    }
+                if (!ALLOWED_SORT_FIELDS.contains(sortBy)) {
+                        throw new IllegalArgumentException("Invalid sort field: " + sortBy);
+                }
 
-    @Transactional(readOnly = true)
-    public TicketDetailResponse getTicketByIdAndCheckAccess(Long id, String username, boolean isPrivileged) {
-        Ticket ticket = ticketRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Ticket not found"));
+                Sort.Direction direction = sortDirection.equalsIgnoreCase("asc")
+                                ? Sort.Direction.ASC
+                                : Sort.Direction.DESC;
 
-        if (!isPrivileged && !ticket.getRequester().getUsername().equals(username)) {
-            throw new AccessDeniedException("You do not have permission to view this ticket");
+                Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+                Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+                boolean isAdminOrManager = auth.getAuthorities().stream()
+                                .anyMatch(a -> a.getAuthority().equals("ADMIN")
+                                                || a.getAuthority().equals("MANAGER"));
+
+                boolean isAgent = auth.getAuthorities().stream()
+                                .anyMatch(a -> a.getAuthority().equals("AGENT"));
+
+                String username = auth.getName();
+
+                Specification<Ticket> spec = Specification
+                                .where(TicketSpecification.hasStatus(status))
+                                .and(TicketSpecification.hasPriority(priority))
+                                .and(TicketSpecification.hasCategoryId(categoryId))
+                                .and(TicketSpecification.createdAfter(createdAfter))
+                                .and(TicketSpecification.createdBefore(createdBefore))
+                                .and(TicketSpecification.hasAssigneeId(assigneeId))
+                                .and(TicketSpecification.hasRequesterId(requesterId))
+                                .and(TicketSpecification.hasSlaBreached(slaBreached))
+                                .and(TicketSpecification.searchByKeyword(search));
+
+                if (isAgent) {
+
+                        User user = userRepository.findByUsername(username)
+                                        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+                        spec = spec.and(TicketSpecification.hasAssigneeId(user.getId()));
+                }
+
+                Page<Ticket> ticketPage = ticketRepository.findAll(spec, pageable);
+
+                List<TicketSummaryResponse> content = ticketPage.getContent()
+                                .stream()
+                                .map(ticketMapper::toSummaryResponse)
+                                .collect(Collectors.toList());
+
+                return new PageResponse<>(
+                                content,
+                                ticketPage.getNumber(),
+                                ticketPage.getSize(),
+                                ticketPage.getTotalElements(),
+                                ticketPage.getTotalPages());
         }
 
-        return ticketMapper.toDetailResponse(ticket);
-    }
+        @Transactional(readOnly = true)
+        public List<TicketSummaryResponse> getMyTickets(String username) {
+                User requester = userRepository.findByUsername(username)
+                                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-    @Transactional
-    public void assignTicket(Long id, AssignTicketRequest request) {
-
-        Ticket ticket = ticketRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Ticket not found"));
-
-        User assignee = userRepository.findById(request.getAssigneeId())
-                .orElseThrow(() -> new RuntimeException("Assignee user not found"));
-
-        if (!assignee.getRoles().contains(Role.AGENT)) {
-            throw new RuntimeException("Assignee must have AGENT role");
+                return ticketRepository.findAllByRequesterIdOrderByCreatedAtDesc(requester.getId()).stream()
+                                .map(ticketMapper::toSummaryResponse)
+                                .collect(Collectors.toList());
         }
 
-        String oldAssignee = ticket.getAssignee() != null
-                ? ticket.getAssignee().getUsername()
-                : "UNASSIGNED";
+        @Transactional(readOnly = true)
+        public TicketDetailResponse getTicketByIdAndCheckAccess(Long id, String username, boolean isPrivileged) {
+                Ticket ticket = ticketRepository.findById(id)
+                                .orElseThrow(() -> new ResourceNotFoundException("Ticket not found"));
 
-        ticket.setAssignee(assignee);
+                if (!isPrivileged && !ticket.getRequester().getUsername().equals(username)) {
+                        throw new AccessDeniedException("You do not have permission to view this ticket");
+                }
 
-        String newAssignee = assignee.getUsername();
-
-        notificationService.createNotification(
-                assignee,
-                "Ticket Assigned",
-                "Ticket " + ticket.getTicketNo() + " assigned to you.",
-                "TICKET_ASSIGNED"
-        );
-
-        if (ticket.getStatus() == TicketStatus.NEW) {
-            ticket.setStatus(TicketStatus.IN_PROGRESS);
+                return ticketMapper.toDetailResponse(ticket);
         }
 
-        ticketRepository.save(ticket);
+        @Transactional
+        public void assignTicket(Long id, AssignTicketRequest request) {
 
-        auditLogService.logAction(
-                "TICKET",
-                ticket.getId(),
-                "TICKET_ASSIGNED",
-                assignee.getId(),
-                "Ticket assigned",
-                oldAssignee,
-                newAssignee
-        );
-    }
+                Ticket ticket = ticketRepository.findById(id)
+                                .orElseThrow(() -> new RuntimeException("Ticket not found"));
 
-    @Transactional
-    public void updateTicketStatus(Long id, UpdateTicketStatusRequest request, String username,
-            Authentication authentication) {
+                User assignee = userRepository.findById(request.getAssigneeId())
+                                .orElseThrow(() -> new RuntimeException("Assignee user not found"));
 
-        Ticket ticket = ticketRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Ticket not found"));
+                if (!assignee.getRoles().contains(Role.AGENT)) {
+                        throw new RuntimeException("Assignee must have AGENT role");
+                }
 
-        boolean isPrivileged = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ADMIN") || a.getAuthority().equals("MANAGER"));
+                String oldAssignee = ticket.getAssignee() != null
+                                ? ticket.getAssignee().getUsername()
+                                : "UNASSIGNED";
 
-        boolean isAgent = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("AGENT"));
+                ticket.setAssignee(assignee);
 
-        if (isAgent) {
-            if (ticket.getAssignee() == null ||
-                    !ticket.getAssignee().getUsername().equals(username)) {
-                throw new AccessDeniedException("Agent can only update assigned tickets");
-            }
+                String newAssignee = assignee.getUsername();
+
+                notificationService.createNotification(
+                                assignee,
+                                "Ticket Assigned",
+                                "Ticket " + ticket.getTicketNo() + " assigned to you.",
+                                "TICKET_ASSIGNED");
+
+                if (ticket.getStatus() == TicketStatus.NEW) {
+                        ticket.setStatus(TicketStatus.IN_PROGRESS);
+                }
+
+                ticketRepository.save(ticket);
+
+                auditLogService.logAction(
+                                "TICKET",
+                                ticket.getId(),
+                                "TICKET_ASSIGNED",
+                                assignee.getId(),
+                                "Ticket assigned",
+                                oldAssignee,
+                                newAssignee);
         }
 
-        if (!isPrivileged && !isAgent) {
-            throw new AccessDeniedException("Not allowed to update ticket status");
+        @Transactional
+        public void updateTicketStatus(Long id, UpdateTicketStatusRequest request, String username,
+                        Authentication authentication) {
+
+                Ticket ticket = ticketRepository.findById(id)
+                                .orElseThrow(() -> new RuntimeException("Ticket not found"));
+
+                boolean isPrivileged = authentication.getAuthorities().stream()
+                                .anyMatch(a -> a.getAuthority().equals("ADMIN") || a.getAuthority().equals("MANAGER"));
+
+                boolean isAgent = authentication.getAuthorities().stream()
+                                .anyMatch(a -> a.getAuthority().equals("AGENT"));
+
+                if (isAgent) {
+                        if (ticket.getAssignee() == null ||
+                                        !ticket.getAssignee().getUsername().equals(username)) {
+                                throw new AccessDeniedException("Agent can only update assigned tickets");
+                        }
+                }
+
+                if (!isPrivileged && !isAgent) {
+                        throw new AccessDeniedException("Not allowed to update ticket status");
+                }
+
+                TicketStatus currentStatus = ticket.getStatus();
+                TicketStatus newStatus = request.getStatus();
+
+                if (!isValidTransition(currentStatus, newStatus)) {
+                        throw new RuntimeException("Invalid status transition: "
+                                        + currentStatus + " -> " + newStatus);
+                }
+
+                ticket.setStatus(newStatus);
+
+                if (newStatus == TicketStatus.RESOLVED) {
+                        ticket.setResolvedAt(LocalDateTime.now());
+                }
+
+                if (newStatus == TicketStatus.CLOSED) {
+                        ticket.setClosedAt(LocalDateTime.now());
+                }
+
+                ticketRepository.save(ticket);
         }
 
-        TicketStatus currentStatus = ticket.getStatus();
-        TicketStatus newStatus = request.getStatus();
+        private boolean isValidTransition(TicketStatus current, TicketStatus next) {
 
-        if (!isValidTransition(currentStatus, newStatus)) {
-            throw new RuntimeException("Invalid status transition: "
-                    + currentStatus + " -> " + newStatus);
+                return switch (current) {
+                        case NEW -> next == TicketStatus.IN_PROGRESS;
+
+                        case IN_PROGRESS ->
+                                next == TicketStatus.WAITING_FOR_CUSTOMER ||
+                                                next == TicketStatus.RESOLVED;
+
+                        case WAITING_FOR_CUSTOMER ->
+                                next == TicketStatus.IN_PROGRESS;
+
+                        case RESOLVED ->
+                                next == TicketStatus.CLOSED ||
+                                                next == TicketStatus.IN_PROGRESS; // reopen
+
+                        default -> false;
+                };
         }
 
-        ticket.setStatus(newStatus);
+        @Transactional
+        public void reopenTicket(Long id, String username, Authentication authentication) {
 
-        if (newStatus == TicketStatus.RESOLVED) {
-            ticket.setResolvedAt(LocalDateTime.now());
+                Ticket ticket = ticketRepository.findById(id)
+                                .orElseThrow(() -> new RuntimeException("Ticket not found"));
+
+                boolean isPrivileged = authentication.getAuthorities().stream()
+                                .anyMatch(a -> a.getAuthority().equals("ADMIN") || a.getAuthority().equals("MANAGER"));
+
+                boolean isAgent = authentication.getAuthorities().stream()
+                                .anyMatch(a -> a.getAuthority().equals("AGENT"));
+
+                boolean isCustomer = authentication.getAuthorities().stream()
+                                .anyMatch(a -> a.getAuthority().equals("CUSTOMER"));
+
+                if (isAgent) {
+                        if (ticket.getAssignee() == null ||
+                                        !ticket.getAssignee().getUsername().equals(username)) {
+                                throw new AccessDeniedException("Agent can only reopen assigned tickets");
+                        }
+                }
+
+                if (isCustomer) {
+                        if (!ticket.getRequester().getUsername().equals(username)) {
+                                throw new AccessDeniedException("Customer can only reopen own tickets");
+                        }
+                }
+
+                if (ticket.getStatus() != TicketStatus.RESOLVED) {
+                        throw new RuntimeException("Only RESOLVED tickets can be reopened");
+                }
+
+                ticket.setStatus(TicketStatus.IN_PROGRESS);
+                ticket.setResolvedAt(null); // 🔥 küçük refine
+
+                ticketRepository.save(ticket);
         }
 
-        if (newStatus == TicketStatus.CLOSED) {
-            ticket.setClosedAt(LocalDateTime.now());
+        @Transactional
+        public void closeTicket(Long id, String username, Authentication authentication) {
+
+                Ticket ticket = ticketRepository.findById(id)
+                                .orElseThrow(() -> new RuntimeException("Ticket not found"));
+
+                boolean isPrivileged = authentication.getAuthorities().stream()
+                                .anyMatch(a -> a.getAuthority().equals("ADMIN") || a.getAuthority().equals("MANAGER"));
+
+                boolean isCustomer = authentication.getAuthorities().stream()
+                                .anyMatch(a -> a.getAuthority().equals("CUSTOMER"));
+
+                if (isCustomer) {
+                        if (!ticket.getRequester().getUsername().equals(username)) {
+                                throw new AccessDeniedException("Customer can only close own tickets");
+                        }
+                }
+
+                if (!isPrivileged && !isCustomer) {
+                        throw new AccessDeniedException("Not allowed to close ticket");
+                }
+
+                if (ticket.getStatus() != TicketStatus.RESOLVED) {
+                        throw new RuntimeException("Only RESOLVED tickets can be closed");
+                }
+
+                ticket.setStatus(TicketStatus.CLOSED);
+                ticket.setClosedAt(LocalDateTime.now());
+
+                ticketRepository.save(ticket);
         }
-
-        ticketRepository.save(ticket);
-    }
-
-    private boolean isValidTransition(TicketStatus current, TicketStatus next) {
-
-        return switch (current) {
-            case NEW -> next == TicketStatus.IN_PROGRESS;
-
-            case IN_PROGRESS ->
-                next == TicketStatus.WAITING_FOR_CUSTOMER ||
-                        next == TicketStatus.RESOLVED;
-
-            case WAITING_FOR_CUSTOMER ->
-                next == TicketStatus.IN_PROGRESS;
-
-            case RESOLVED ->
-                next == TicketStatus.CLOSED ||
-                        next == TicketStatus.IN_PROGRESS; // reopen
-
-            default -> false;
-        };
-    }
-
-    @Transactional
-    public void reopenTicket(Long id, String username, Authentication authentication) {
-
-        Ticket ticket = ticketRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Ticket not found"));
-
-        boolean isPrivileged = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ADMIN") || a.getAuthority().equals("MANAGER"));
-
-        boolean isAgent = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("AGENT"));
-
-        boolean isCustomer = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("CUSTOMER"));
-
-        if (isAgent) {
-            if (ticket.getAssignee() == null ||
-                    !ticket.getAssignee().getUsername().equals(username)) {
-                throw new AccessDeniedException("Agent can only reopen assigned tickets");
-            }
-        }
-
-        if (isCustomer) {
-            if (!ticket.getRequester().getUsername().equals(username)) {
-                throw new AccessDeniedException("Customer can only reopen own tickets");
-            }
-        }
-
-        if (ticket.getStatus() != TicketStatus.RESOLVED) {
-            throw new RuntimeException("Only RESOLVED tickets can be reopened");
-        }
-
-        ticket.setStatus(TicketStatus.IN_PROGRESS);
-        ticket.setResolvedAt(null); // 🔥 küçük refine
-
-        ticketRepository.save(ticket);
-    }
-
-    @Transactional
-    public void closeTicket(Long id, String username, Authentication authentication) {
-
-        Ticket ticket = ticketRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Ticket not found"));
-
-        boolean isPrivileged = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ADMIN") || a.getAuthority().equals("MANAGER"));
-
-        boolean isCustomer = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("CUSTOMER"));
-
-        if (isCustomer) {
-            if (!ticket.getRequester().getUsername().equals(username)) {
-                throw new AccessDeniedException("Customer can only close own tickets");
-            }
-        }
-
-        if (!isPrivileged && !isCustomer) {
-            throw new AccessDeniedException("Not allowed to close ticket");
-        }
-
-        if (ticket.getStatus() != TicketStatus.RESOLVED) {
-            throw new RuntimeException("Only RESOLVED tickets can be closed");
-        }
-
-        ticket.setStatus(TicketStatus.CLOSED);
-        ticket.setClosedAt(LocalDateTime.now());
-
-        ticketRepository.save(ticket);
-    }
 }
