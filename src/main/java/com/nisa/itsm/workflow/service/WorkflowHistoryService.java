@@ -26,4 +26,12 @@ public interface WorkflowHistoryService {
             String action,
             String comment,
             User performedBy);
+
+    /**
+     * Retrieves the workflow history for a specific ticket.
+     *
+     * @param ticketId The ID of the ticket
+     * @return List of workflow history records
+     */
+    java.util.List<com.nisa.itsm.workflow.dto.response.WorkflowHistoryResponse> getHistoryForTicket(Long ticketId);
 }

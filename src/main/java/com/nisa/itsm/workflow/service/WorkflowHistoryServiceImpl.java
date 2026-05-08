@@ -37,4 +37,23 @@ public class WorkflowHistoryServiceImpl implements WorkflowHistoryService {
 
                 workflowHistoryRepository.save(history);
         }
+
+        @Override
+        @Transactional(readOnly = true)
+        public java.util.List<com.nisa.itsm.workflow.dto.response.WorkflowHistoryResponse> getHistoryForTicket(
+                        Long ticketId) {
+                return workflowHistoryRepository.findByTicketIdOrderByCreatedAtAsc(ticketId).stream()
+                                .map(history -> com.nisa.itsm.workflow.dto.response.WorkflowHistoryResponse.builder()
+                                                .id(history.getId())
+                                                .ticketId(history.getTicket().getId())
+                                                .fromStatus(history.getFromStatus())
+                                                .toStatus(history.getToStatus())
+                                                .action(history.getAction())
+                                                .comment(history.getComment())
+                                                .performedById(history.getPerformedBy().getId())
+                                                .performedByUsername(history.getPerformedByUsername())
+                                                .createdAt(history.getCreatedAt())
+                                                .build())
+                                .toList();
+        }
 }

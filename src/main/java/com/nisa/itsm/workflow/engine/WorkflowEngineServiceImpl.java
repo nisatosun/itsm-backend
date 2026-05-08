@@ -54,8 +54,7 @@ public class WorkflowEngineServiceImpl implements WorkflowEngineService {
                 targetStatus,
                 "STATUS_CHANGED",
                 comment,
-                performedBy
-        );
+                performedBy);
     }
 
     @Override

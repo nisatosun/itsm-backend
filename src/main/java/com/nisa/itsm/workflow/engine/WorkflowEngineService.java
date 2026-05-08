@@ -35,10 +35,10 @@ public interface WorkflowEngineService {
     /**
      * Executes a status transition.
      *
-     * @param ticket         The ticket to transition
-     * @param targetStatus   The target status
-     * @param performedBy    The user performing the transition
-     * @param comment        An optional comment for the transition
+     * @param ticket       The ticket to transition
+     * @param targetStatus The target status
+     * @param performedBy  The user performing the transition
+     * @param comment      An optional comment for the transition
      */
     void executeTransition(Ticket ticket, TicketStatus targetStatus, User performedBy, String comment);
 

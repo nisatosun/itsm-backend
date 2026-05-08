@@ -77,8 +77,7 @@ class WorkflowEngineServiceImplTest {
                 eq(TicketStatus.RESOLVED),
                 eq("STATUS_CHANGED"),
                 isNull(),
-                isNull()
-        );
+                isNull());
     }
 
     @Test
@@ -98,8 +97,7 @@ class WorkflowEngineServiceImplTest {
                 eq(TicketStatus.CLOSED),
                 eq("STATUS_CHANGED"),
                 isNull(),
-                isNull()
-        );
+                isNull());
     }
 
     @Test
@@ -120,7 +118,6 @@ class WorkflowEngineServiceImplTest {
                 eq(TicketStatus.IN_PROGRESS),
                 eq("STATUS_CHANGED"),
                 eq("Working on it"),
-                isNull()
-        );
+                isNull());
     }
 }
