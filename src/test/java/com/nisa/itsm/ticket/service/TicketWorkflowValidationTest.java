@@ -25,6 +25,7 @@ class TicketWorkflowValidationTest {
                                 null,
                                 policy,
                                 null,
+                                null,
                                 null);
 
                 Method method = TicketService.class.getDeclaredMethod(
@@ -55,6 +56,7 @@ class TicketWorkflowValidationTest {
                                 null,
                                 null,
                                 policy,
+                                null,
                                 null,
                                 null);
 

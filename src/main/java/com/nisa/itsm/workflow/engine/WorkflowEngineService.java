@@ -17,7 +17,7 @@ public interface WorkflowEngineService {
     /**
      * Starts a workflow process for a newly created ticket.
      *
-     * @param ticket The ticket entity
+     * @param ticket    The ticket entity
      * @param variables Workflow variables
      * @return The process instance ID
      */
@@ -27,7 +27,7 @@ public interface WorkflowEngineService {
      * Validates if a transition between two statuses is allowed.
      *
      * @param current The current ticket status
-     * @param next The target ticket status
+     * @param next    The target ticket status
      * @return true if valid, false otherwise
      */
     boolean isTransitionValid(TicketStatus current, TicketStatus next);
@@ -35,19 +35,18 @@ public interface WorkflowEngineService {
     /**
      * Executes a status transition.
      *
-     * @param ticket The ticket to transition
-     * @param targetStatus The target status
+     * @param ticket         The ticket to transition
+     * @param targetStatus   The target status
      * @param authentication The current user's authentication context
-     * @param comment An optional comment for the transition
+     * @param comment        An optional comment for the transition
      */
     void executeTransition(Ticket ticket, TicketStatus targetStatus, Authentication authentication, String comment);
 
     /**
      * Handles side-effects of assigning a ticket.
      *
-     * @param ticket The ticket being assigned
+     * @param ticket   The ticket being assigned
      * @param assignee The user being assigned to the ticket
-     * @param authentication The current user's authentication context
      */
-    void executeAssignment(Ticket ticket, User assignee, Authentication authentication);
+    void executeAssignment(Ticket ticket, User assignee);
 }

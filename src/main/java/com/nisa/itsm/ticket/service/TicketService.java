@@ -25,6 +25,7 @@ import com.nisa.itsm.common.enums.Role;
 import com.nisa.itsm.sla.service.SlaService;
 import com.nisa.itsm.workflow.service.WorkflowService;
 import com.nisa.itsm.workflow.transition.WorkflowTransitionPolicy;
+import com.nisa.itsm.workflow.engine.WorkflowEngineService;
 import com.nisa.itsm.notification.service.NotificationService;
 import com.nisa.itsm.audit.service.AuditLogService;
 import com.nisa.itsm.common.dto.PageResponse;
@@ -54,6 +55,7 @@ public class TicketService {
         private final SlaService slaService;
         private final WorkflowService workflowService;
         private final WorkflowTransitionPolicy workflowTransitionPolicy;
+        private final WorkflowEngineService workflowEngineService;
         private final NotificationService notificationService;
         private final AuditLogService auditLogService;
 
@@ -222,7 +224,7 @@ public class TicketService {
                                 ? ticket.getAssignee().getUsername()
                                 : "UNASSIGNED";
 
-                ticket.setAssignee(assignee);
+                workflowEngineService.executeAssignment(ticket, assignee);
 
                 String newAssignee = assignee.getUsername();
 
@@ -231,10 +233,6 @@ public class TicketService {
                                 "Ticket Assigned",
                                 "Ticket " + ticket.getTicketNo() + " assigned to you.",
                                 "TICKET_ASSIGNED");
-
-                if (ticket.getStatus() == TicketStatus.NEW) {
-                        ticket.setStatus(TicketStatus.IN_PROGRESS);
-                }
 
                 ticketRepository.save(ticket);
 

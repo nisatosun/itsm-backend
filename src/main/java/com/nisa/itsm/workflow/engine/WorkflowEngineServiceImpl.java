@@ -25,18 +25,22 @@ public class WorkflowEngineServiceImpl implements WorkflowEngineService {
     public boolean isTransitionValid(TicketStatus current, TicketStatus next) {
         log.info("Placeholder: Validating transition from {} to {}", current, next);
         // Logic currently resides in TicketService and WorkflowService
-        return true; 
+        return true;
     }
 
     @Override
-    public void executeTransition(Ticket ticket, TicketStatus targetStatus, Authentication authentication, String comment) {
+    public void executeTransition(Ticket ticket, TicketStatus targetStatus, Authentication authentication,
+            String comment) {
         log.info("Placeholder: Executing transition for ticket {} to {}", ticket.getId(), targetStatus);
         // Logic currently resides in TicketService and WorkflowService
     }
 
     @Override
-    public void executeAssignment(Ticket ticket, User assignee, Authentication authentication) {
-        log.info("Placeholder: Executing assignment for ticket {} to assignee {}", ticket.getId(), assignee.getId());
-        // Logic currently resides in TicketService
+    public void executeAssignment(Ticket ticket, User assignee) {
+        log.info("Executing assignment for ticket {} to assignee {}", ticket.getId(), assignee.getId());
+        ticket.setAssignee(assignee);
+        if (ticket.getStatus() == TicketStatus.NEW) {
+            ticket.setStatus(TicketStatus.IN_PROGRESS);
+        }
     }
 }
