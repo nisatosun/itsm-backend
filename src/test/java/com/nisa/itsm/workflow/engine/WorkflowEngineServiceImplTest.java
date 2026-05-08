@@ -46,4 +46,42 @@ class WorkflowEngineServiceImplTest {
         assertThat(ticket.getAssignee()).isEqualTo(assignee);
         assertThat(ticket.getStatus()).isEqualTo(TicketStatus.WAITING_FOR_CUSTOMER);
     }
+
+    @Test
+    void executeTransition_WhenTargetIsResolved_ShouldSetResolvedAt() {
+        Ticket ticket = new Ticket();
+        ticket.setId(3L);
+        ticket.setStatus(TicketStatus.IN_PROGRESS);
+
+        workflowEngineService.executeTransition(ticket, TicketStatus.RESOLVED, null, null);
+
+        assertThat(ticket.getStatus()).isEqualTo(TicketStatus.RESOLVED);
+        assertThat(ticket.getResolvedAt()).isNotNull();
+        assertThat(ticket.getClosedAt()).isNull();
+    }
+
+    @Test
+    void executeTransition_WhenTargetIsClosed_ShouldSetClosedAt() {
+        Ticket ticket = new Ticket();
+        ticket.setId(4L);
+        ticket.setStatus(TicketStatus.RESOLVED);
+
+        workflowEngineService.executeTransition(ticket, TicketStatus.CLOSED, null, null);
+
+        assertThat(ticket.getStatus()).isEqualTo(TicketStatus.CLOSED);
+        assertThat(ticket.getClosedAt()).isNotNull();
+    }
+
+    @Test
+    void executeTransition_WhenTargetIsInProgress_ShouldUpdateStatusWithoutDates() {
+        Ticket ticket = new Ticket();
+        ticket.setId(5L);
+        ticket.setStatus(TicketStatus.NEW);
+
+        workflowEngineService.executeTransition(ticket, TicketStatus.IN_PROGRESS, null, null);
+
+        assertThat(ticket.getStatus()).isEqualTo(TicketStatus.IN_PROGRESS);
+        assertThat(ticket.getResolvedAt()).isNull();
+        assertThat(ticket.getClosedAt()).isNull();
+    }
 }

@@ -31,8 +31,17 @@ public class WorkflowEngineServiceImpl implements WorkflowEngineService {
     @Override
     public void executeTransition(Ticket ticket, TicketStatus targetStatus, Authentication authentication,
             String comment) {
-        log.info("Placeholder: Executing transition for ticket {} to {}", ticket.getId(), targetStatus);
-        // Logic currently resides in TicketService and WorkflowService
+        log.info("Executing transition for ticket {} to {}", ticket.getId(), targetStatus);
+
+        ticket.setStatus(targetStatus);
+
+        if (targetStatus == TicketStatus.RESOLVED) {
+            ticket.setResolvedAt(java.time.LocalDateTime.now());
+        }
+
+        if (targetStatus == TicketStatus.CLOSED) {
+            ticket.setClosedAt(java.time.LocalDateTime.now());
+        }
     }
 
     @Override

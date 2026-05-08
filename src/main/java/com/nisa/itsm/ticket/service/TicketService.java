@@ -278,15 +278,7 @@ public class TicketService {
                                         + currentStatus + " -> " + newStatus);
                 }
 
-                ticket.setStatus(newStatus);
-
-                if (newStatus == TicketStatus.RESOLVED) {
-                        ticket.setResolvedAt(LocalDateTime.now());
-                }
-
-                if (newStatus == TicketStatus.CLOSED) {
-                        ticket.setClosedAt(LocalDateTime.now());
-                }
+                workflowEngineService.executeTransition(ticket, newStatus, authentication, null);
 
                 ticketRepository.save(ticket);
         }
