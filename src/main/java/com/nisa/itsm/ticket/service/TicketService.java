@@ -24,6 +24,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import com.nisa.itsm.common.enums.Role;
 import com.nisa.itsm.sla.service.SlaService;
 import com.nisa.itsm.workflow.service.WorkflowService;
+import com.nisa.itsm.workflow.transition.WorkflowTransitionPolicy;
 import com.nisa.itsm.notification.service.NotificationService;
 import com.nisa.itsm.audit.service.AuditLogService;
 import com.nisa.itsm.common.dto.PageResponse;
@@ -52,6 +53,7 @@ public class TicketService {
         private final TicketMapper ticketMapper;
         private final SlaService slaService;
         private final WorkflowService workflowService;
+        private final WorkflowTransitionPolicy workflowTransitionPolicy;
         private final NotificationService notificationService;
         private final AuditLogService auditLogService;
 
@@ -292,23 +294,7 @@ public class TicketService {
         }
 
         private boolean isValidTransition(TicketStatus current, TicketStatus next) {
-
-                return switch (current) {
-                        case NEW -> next == TicketStatus.IN_PROGRESS;
-
-                        case IN_PROGRESS ->
-                                next == TicketStatus.WAITING_FOR_CUSTOMER ||
-                                                next == TicketStatus.RESOLVED;
-
-                        case WAITING_FOR_CUSTOMER ->
-                                next == TicketStatus.IN_PROGRESS;
-
-                        case RESOLVED ->
-                                next == TicketStatus.CLOSED ||
-                                                next == TicketStatus.IN_PROGRESS; // reopen
-
-                        default -> false;
-                };
+                return workflowTransitionPolicy.isAllowed(current, next);
         }
 
         @Transactional

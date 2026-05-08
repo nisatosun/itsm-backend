@@ -7,67 +7,69 @@ import java.lang.reflect.Method;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.nisa.itsm.workflow.transition.WorkflowTransitionPolicy;
+
 class TicketWorkflowValidationTest {
 
-    @Test
-    void shouldRejectInvalidTransitionFromNewToClosed() throws Exception {
+        @Test
+        void shouldRejectInvalidTransitionFromNewToClosed() throws Exception {
 
-        TicketService ticketService = new TicketService(
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null
-        );
+                WorkflowTransitionPolicy policy = new WorkflowTransitionPolicy();
 
-        Method method = TicketService.class.getDeclaredMethod(
-                "isValidTransition",
-                TicketStatus.class,
-                TicketStatus.class
-        );
+                TicketService ticketService = new TicketService(
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                policy,
+                                null,
+                                null);
 
-        method.setAccessible(true);
+                Method method = TicketService.class.getDeclaredMethod(
+                                "isValidTransition",
+                                TicketStatus.class,
+                                TicketStatus.class);
 
-        boolean result = (boolean) method.invoke(
-                ticketService,
-                TicketStatus.NEW,
-                TicketStatus.CLOSED
-        );
+                method.setAccessible(true);
 
-        assertFalse(result);
-    }
+                boolean result = (boolean) method.invoke(
+                                ticketService,
+                                TicketStatus.NEW,
+                                TicketStatus.CLOSED);
 
-    @Test
-    void shouldAllowValidTransitionFromNewToInProgress() throws Exception {
+                assertFalse(result);
+        }
 
-        TicketService ticketService = new TicketService(
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null
-        );
+        @Test
+        void shouldAllowValidTransitionFromNewToInProgress() throws Exception {
 
-        Method method = TicketService.class.getDeclaredMethod(
-                "isValidTransition",
-                TicketStatus.class,
-                TicketStatus.class
-        );
+                WorkflowTransitionPolicy policy = new WorkflowTransitionPolicy();
 
-        method.setAccessible(true);
+                TicketService ticketService = new TicketService(
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                policy,
+                                null,
+                                null);
 
-        boolean result = (boolean) method.invoke(
-                ticketService,
-                TicketStatus.NEW,
-                TicketStatus.IN_PROGRESS
-        );
+                Method method = TicketService.class.getDeclaredMethod(
+                                "isValidTransition",
+                                TicketStatus.class,
+                                TicketStatus.class);
 
-        assertTrue(result);
-    }
+                method.setAccessible(true);
+
+                boolean result = (boolean) method.invoke(
+                                ticketService,
+                                TicketStatus.NEW,
+                                TicketStatus.IN_PROGRESS);
+
+                assertTrue(result);
+        }
 }
