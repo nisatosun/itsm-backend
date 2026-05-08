@@ -1,0 +1,14 @@
+ALTER TABLE sla_tracking
+    ADD COLUMN IF NOT EXISTS start_time TIMESTAMP;
+
+ALTER TABLE sla_tracking
+    ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMP;
+
+ALTER TABLE sla_tracking
+    ADD COLUMN IF NOT EXISTS breached_at TIMESTAMP;
+
+ALTER TABLE sla_tracking
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP;
+
+ALTER TABLE sla_tracking
+    ADD COLUMN IF NOT EXISTS created_at TIMESTAMP;

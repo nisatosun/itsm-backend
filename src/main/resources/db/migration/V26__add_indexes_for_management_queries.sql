@@ -7,9 +7,6 @@ CREATE INDEX IF NOT EXISTS idx_tickets_requester_id ON tickets(requester_id);
 CREATE INDEX IF NOT EXISTS idx_tickets_created_at ON tickets(created_at);
 CREATE INDEX IF NOT EXISTS idx_tickets_updated_at ON tickets(updated_at);
 
--- Index for sla_tracking table
-CREATE INDEX IF NOT EXISTS idx_sla_tracking_breached ON sla_tracking(breached);
-
 -- Index for audit_logs table
 CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
 
