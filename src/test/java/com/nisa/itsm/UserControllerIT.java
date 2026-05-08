@@ -17,29 +17,35 @@ class UserControllerIT {
     @Autowired
     private MockMvc mockMvc;
 
-    // ❌ Token yok → 403
     @Test
-    void shouldReturnForbidden_whenNoToken() throws Exception {
+    void shouldReturnUnauthorized_whenNoToken() throws Exception {
+        mockMvc.perform(get("/api/users")
+                        .param("page", "0")
+                        .param("size", "5"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(authorities = "CUSTOMER")
+    void shouldReturnForbidden_whenCustomerAuthority() throws Exception {
         mockMvc.perform(get("/api/users")
                         .param("page", "0")
                         .param("size", "5"))
                 .andExpect(status().isForbidden());
     }
 
-    // ❌ USER role → 403
     @Test
-    @WithMockUser(roles = "CUSTOMER")
-    void shouldReturnForbidden_whenUserRole() throws Exception {
+    @WithMockUser(authorities = "AGENT")
+    void shouldReturnForbidden_whenAgentAuthority() throws Exception {
         mockMvc.perform(get("/api/users")
                         .param("page", "0")
                         .param("size", "5"))
                 .andExpect(status().isForbidden());
     }
 
-    // ✅ ADMIN role → 200
     @Test
-    @WithMockUser(roles = "ADMIN")
-    void shouldReturnOk_whenAdminRole() throws Exception {
+    @WithMockUser(authorities = "ADMIN")
+    void shouldReturnOk_whenAdminAuthority() throws Exception {
         mockMvc.perform(get("/api/users")
                         .param("page", "0")
                         .param("size", "5"))
