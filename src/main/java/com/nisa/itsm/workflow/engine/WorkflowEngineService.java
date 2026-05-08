@@ -37,10 +37,10 @@ public interface WorkflowEngineService {
      *
      * @param ticket         The ticket to transition
      * @param targetStatus   The target status
-     * @param authentication The current user's authentication context
+     * @param performedBy    The user performing the transition
      * @param comment        An optional comment for the transition
      */
-    void executeTransition(Ticket ticket, TicketStatus targetStatus, Authentication authentication, String comment);
+    void executeTransition(Ticket ticket, TicketStatus targetStatus, User performedBy, String comment);
 
     /**
      * Handles side-effects of assigning a ticket.

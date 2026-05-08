@@ -3,15 +3,19 @@ package com.nisa.itsm.workflow.engine;
 import com.nisa.itsm.common.enums.TicketStatus;
 import com.nisa.itsm.ticket.entity.Ticket;
 import com.nisa.itsm.user.entity.User;
+import com.nisa.itsm.workflow.service.WorkflowHistoryService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class WorkflowEngineServiceImpl implements WorkflowEngineService {
+
+    private final WorkflowHistoryService workflowHistoryService;
 
     @Override
     public Long startProcess(Ticket ticket, Map<String, Object> variables) {
@@ -29,10 +33,11 @@ public class WorkflowEngineServiceImpl implements WorkflowEngineService {
     }
 
     @Override
-    public void executeTransition(Ticket ticket, TicketStatus targetStatus, Authentication authentication,
+    public void executeTransition(Ticket ticket, TicketStatus targetStatus, User performedBy,
             String comment) {
         log.info("Executing transition for ticket {} to {}", ticket.getId(), targetStatus);
 
+        TicketStatus fromStatus = ticket.getStatus();
         ticket.setStatus(targetStatus);
 
         if (targetStatus == TicketStatus.RESOLVED) {
@@ -42,6 +47,15 @@ public class WorkflowEngineServiceImpl implements WorkflowEngineService {
         if (targetStatus == TicketStatus.CLOSED) {
             ticket.setClosedAt(java.time.LocalDateTime.now());
         }
+
+        workflowHistoryService.recordTransition(
+                ticket,
+                fromStatus,
+                targetStatus,
+                "STATUS_CHANGED",
+                comment,
+                performedBy
+        );
     }
 
     @Override

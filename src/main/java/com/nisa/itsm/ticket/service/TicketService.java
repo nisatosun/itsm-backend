@@ -278,7 +278,10 @@ public class TicketService {
                                         + currentStatus + " -> " + newStatus);
                 }
 
-                workflowEngineService.executeTransition(ticket, newStatus, authentication, null);
+                User performedBy = userRepository.findByUsername(username)
+                                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+
+                workflowEngineService.executeTransition(ticket, newStatus, performedBy, null);
 
                 ticketRepository.save(ticket);
         }
