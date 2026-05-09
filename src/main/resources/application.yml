@@ -34,5 +34,6 @@ logging:
     org.springframework.security: INFO
     org.hibernate.SQL: DEBUG
 
-
-
+itsm:
+  ticket:
+    auto-close-days: 3

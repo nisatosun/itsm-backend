@@ -70,7 +70,8 @@ class WorkflowServiceTest {
         when(authentication.getName()).thenReturn("agent");
         when(ticketRepository.findById(10L)).thenReturn(Optional.of(ticket));
         when(userRepository.findByUsername("agent")).thenReturn(Optional.of(user));
-        when(workflowHistoryRepository.save(any(WorkflowHistory.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(workflowHistoryRepository.save(any(WorkflowHistory.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         workflowService.transitionTicket(10L, request, authentication);
 
@@ -130,7 +131,8 @@ class WorkflowServiceTest {
         when(authentication.getName()).thenReturn("agent");
         when(ticketRepository.findById(10L)).thenReturn(Optional.of(ticket));
         when(userRepository.findByUsername("agent")).thenReturn(Optional.of(user));
-        when(workflowHistoryRepository.save(any(WorkflowHistory.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(workflowHistoryRepository.save(any(WorkflowHistory.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         workflowService.transitionTicket(10L, request, authentication);
 
@@ -151,7 +153,8 @@ class WorkflowServiceTest {
         when(authentication.getName()).thenReturn("agent");
         when(ticketRepository.findById(10L)).thenReturn(Optional.of(ticket));
         when(userRepository.findByUsername("agent")).thenReturn(Optional.of(user));
-        when(workflowHistoryRepository.save(any(WorkflowHistory.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(workflowHistoryRepository.save(any(WorkflowHistory.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         workflowService.transitionTicket(10L, request, authentication);
 

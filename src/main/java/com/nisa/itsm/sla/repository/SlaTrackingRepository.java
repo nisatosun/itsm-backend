@@ -15,10 +15,15 @@ public interface SlaTrackingRepository extends JpaRepository<SlaTracking, Long> 
 
     List<SlaTracking> findByBreachedFalseAndDueDateBetween(
             LocalDateTime now,
-            LocalDateTime warningLimit
-    );
+            LocalDateTime warningLimit);
+
+    List<SlaTracking> findByBreachedFalseAndDueDateBefore(LocalDateTime now);
 
     long countByBreachedTrue();
 
     long countByBreachedFalse();
+
+    long countByBreachedTrueAndStartTimeAfter(LocalDateTime time);
+
+    long countByBreachedFalseAndStartTimeAfter(LocalDateTime time);
 }

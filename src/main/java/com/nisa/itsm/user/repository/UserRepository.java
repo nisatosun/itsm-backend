@@ -18,4 +18,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @EntityGraph(attributePaths = "roles")
     Page<User> findAll(Pageable pageable);
+
+    java.util.List<User> findByRolesIn(java.util.Collection<com.nisa.itsm.common.enums.Role> roles);
 }

@@ -58,10 +58,11 @@ public class WorkflowService {
                 }
 
                 TicketStatus oldStatus = ticket.getStatus();
-                boolean isReopen = (oldStatus == TicketStatus.RESOLVED && request.getTargetStatus() == TicketStatus.IN_PROGRESS);
+                boolean isReopen = (oldStatus == TicketStatus.RESOLVED
+                                && request.getTargetStatus() == TicketStatus.IN_PROGRESS);
 
                 ticket.setStatus(request.getTargetStatus());
-                
+
                 if (isReopen) {
                         ticket.setResolvedAt(null);
                 }

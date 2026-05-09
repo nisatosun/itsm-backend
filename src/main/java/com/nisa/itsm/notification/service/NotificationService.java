@@ -151,4 +151,23 @@ public class NotificationService {
 
         notificationRepository.save(notification);
     }
+
+    public void createSlaBreachNotification(
+            User user,
+            Ticket ticket) {
+        if (user == null) {
+            return;
+        }
+
+        Notification notification = new Notification();
+        notification.setUser(user);
+        notification.setTitle("SLA Breach Escalation");
+        notification.setMessage(
+                "Ticket " + ticket.getTicketNo()
+                        + " has breached its SLA.");
+        notification.setType("SLA_BREACH");
+        notification.setRead(false);
+
+        notificationRepository.save(notification);
+    }
 }
