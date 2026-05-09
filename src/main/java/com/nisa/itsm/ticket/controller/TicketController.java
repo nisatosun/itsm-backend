@@ -96,6 +96,16 @@ public class TicketController {
         return ResponseEntity.ok().build();
     }
 
+    @PutMapping("/{id}/claim")
+    @PreAuthorize("hasAnyAuthority('AGENT')")
+    public ResponseEntity<Void> claimTicket(
+            @PathVariable Long id,
+            Principal principal,
+            Authentication authentication) {
+        ticketService.claimTicket(id, principal.getName(), authentication);
+        return ResponseEntity.ok().build();
+    }
+
     @PutMapping("/{id}/status")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'AGENT')")
     public ResponseEntity<Void> updateTicketStatus(

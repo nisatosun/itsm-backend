@@ -13,4 +13,6 @@ public class UpdateTicketStatusRequest {
     
     @NotNull(message = "Status is required")
     private TicketStatus status;
+
+    private String comment;
 }

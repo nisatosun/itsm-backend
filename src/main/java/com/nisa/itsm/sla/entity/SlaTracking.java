@@ -45,4 +45,10 @@ public class SlaTracking extends BaseEntity {
 
     @Column(name = "breached_at")
     private LocalDateTime breachedAt;
+
+    @Column(name = "paused_at")
+    private LocalDateTime pausedAt;
+
+    @Column(name = "total_paused_duration_minutes")
+    private Long totalPausedDurationMinutes = 0L;
 }

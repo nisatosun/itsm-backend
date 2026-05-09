@@ -25,6 +25,7 @@ import com.nisa.itsm.common.enums.Role;
 import com.nisa.itsm.sla.service.SlaService;
 import com.nisa.itsm.workflow.service.WorkflowService;
 import com.nisa.itsm.workflow.transition.WorkflowTransitionPolicy;
+import com.nisa.itsm.workflow.assignment.WorkflowAssignmentPolicy;
 import com.nisa.itsm.workflow.engine.WorkflowEngineService;
 import com.nisa.itsm.notification.service.NotificationService;
 import com.nisa.itsm.audit.service.AuditLogService;
@@ -55,6 +56,7 @@ public class TicketService {
         private final SlaService slaService;
         private final WorkflowService workflowService;
         private final WorkflowTransitionPolicy workflowTransitionPolicy;
+        private final WorkflowAssignmentPolicy workflowAssignmentPolicy;
         private final WorkflowEngineService workflowEngineService;
         private final NotificationService notificationService;
         private final AuditLogService auditLogService;
@@ -247,6 +249,41 @@ public class TicketService {
         }
 
         @Transactional
+        public void claimTicket(Long id, String username, Authentication authentication) {
+                Ticket ticket = ticketRepository.findById(id)
+                                .orElseThrow(() -> new RuntimeException("Ticket not found"));
+
+                User agent = userRepository.findByUsername(username)
+                                .orElseThrow(() -> new RuntimeException("User not found"));
+
+                if (!workflowAssignmentPolicy.canAssign(ticket, agent, authentication)) {
+                        throw new AccessDeniedException("You cannot claim this ticket");
+                }
+
+                String oldAssignee = "UNASSIGNED";
+                String newAssignee = agent.getUsername();
+
+                workflowEngineService.executeAssignment(ticket, agent);
+
+                notificationService.createNotification(
+                                agent,
+                                "Ticket Claimed",
+                                "You have successfully claimed ticket " + ticket.getTicketNo() + ".",
+                                "TICKET_CLAIMED");
+
+                ticketRepository.save(ticket);
+
+                auditLogService.logAction(
+                                "TICKET",
+                                ticket.getId(),
+                                "TICKET_CLAIMED",
+                                agent.getId(),
+                                "Ticket claimed by agent",
+                                oldAssignee,
+                                newAssignee);
+        }
+
+        @Transactional
         public void updateTicketStatus(Long id, UpdateTicketStatusRequest request, String username,
                         Authentication authentication) {
 
@@ -281,7 +318,7 @@ public class TicketService {
                 User performedBy = userRepository.findByUsername(username)
                                 .orElseThrow(() -> new RuntimeException("User not found: " + username));
 
-                workflowEngineService.executeTransition(ticket, newStatus, performedBy, null);
+                workflowEngineService.executeTransition(ticket, newStatus, performedBy, request.getComment());
 
                 ticketRepository.save(ticket);
         }
@@ -322,8 +359,10 @@ public class TicketService {
                         throw new RuntimeException("Only RESOLVED tickets can be reopened");
                 }
 
-                ticket.setStatus(TicketStatus.IN_PROGRESS);
-                ticket.setResolvedAt(null); // 🔥 küçük refine
+                User performedBy = userRepository.findByUsername(username)
+                                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+
+                workflowEngineService.executeTransition(ticket, TicketStatus.IN_PROGRESS, performedBy, null);
 
                 ticketRepository.save(ticket);
         }

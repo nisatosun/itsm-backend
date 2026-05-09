@@ -1,8 +1,10 @@
 package com.nisa.itsm.workflow.engine;
 
 import com.nisa.itsm.common.enums.TicketStatus;
+import com.nisa.itsm.exception.custom.BadRequestException;
 import com.nisa.itsm.ticket.entity.Ticket;
 import com.nisa.itsm.user.entity.User;
+import com.nisa.itsm.sla.service.SlaService;
 import com.nisa.itsm.workflow.service.WorkflowHistoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +18,7 @@ import java.util.Map;
 public class WorkflowEngineServiceImpl implements WorkflowEngineService {
 
     private final WorkflowHistoryService workflowHistoryService;
+    private final SlaService slaService;
 
     @Override
     public Long startProcess(Ticket ticket, Map<String, Object> variables) {
@@ -37,23 +40,37 @@ public class WorkflowEngineServiceImpl implements WorkflowEngineService {
             String comment) {
         log.info("Executing transition for ticket {} to {}", ticket.getId(), targetStatus);
 
+        if (targetStatus == TicketStatus.RESOLVED && (comment == null || comment.isBlank())) {
+            throw new BadRequestException("Resolution note is required when resolving a ticket");
+        }
+
         TicketStatus fromStatus = ticket.getStatus();
+        boolean isReopen = (fromStatus == TicketStatus.RESOLVED && targetStatus == TicketStatus.IN_PROGRESS);
+
         ticket.setStatus(targetStatus);
 
         if (targetStatus == TicketStatus.RESOLVED) {
             ticket.setResolvedAt(java.time.LocalDateTime.now());
         }
 
+        if (isReopen) {
+            ticket.setResolvedAt(null);
+        }
+
         if (targetStatus == TicketStatus.CLOSED) {
             ticket.setClosedAt(java.time.LocalDateTime.now());
         }
+
+        slaService.handleTicketTransition(ticket, fromStatus, targetStatus);
+
+        String action = isReopen ? "TICKET_REOPENED" : "STATUS_TRANSITION";
 
         workflowHistoryService.recordTransition(
                 ticket,
                 fromStatus,
                 targetStatus,
-                "STATUS_CHANGED",
-                comment,
+                action,
+                targetStatus == TicketStatus.RESOLVED ? comment.trim() : comment,
                 performedBy);
     }
 
@@ -61,8 +78,18 @@ public class WorkflowEngineServiceImpl implements WorkflowEngineService {
     public void executeAssignment(Ticket ticket, User assignee) {
         log.info("Executing assignment for ticket {} to assignee {}", ticket.getId(), assignee.getId());
         ticket.setAssignee(assignee);
-        if (ticket.getStatus() == TicketStatus.NEW) {
-            ticket.setStatus(TicketStatus.IN_PROGRESS);
+        TicketStatus oldStatus = ticket.getStatus();
+
+        if (oldStatus == TicketStatus.NEW || oldStatus == TicketStatus.TRIAGE) {
+            ticket.setStatus(TicketStatus.ASSIGNED);
+
+            workflowHistoryService.recordTransition(
+                    ticket,
+                    oldStatus,
+                    TicketStatus.ASSIGNED,
+                    "STATUS_TRANSITION",
+                    "Ticket moved to ASSIGNED",
+                    assignee);
         }
     }
 }

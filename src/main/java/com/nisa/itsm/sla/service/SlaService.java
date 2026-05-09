@@ -42,8 +42,7 @@ public class SlaService {
         SlaTracking tracking = calculatorService.initializeSlaTracking(
                 ticket,
                 policy,
-                LocalDateTime.now()
-        );
+                LocalDateTime.now());
 
         trackingRepository.save(tracking);
     }
@@ -59,10 +58,9 @@ public class SlaService {
     public SlaPolicyResponse createPolicy(CreateSlaPolicyRequest request) {
         SlaPolicy policy = new SlaPolicy();
 
-        boolean changed =
-                !Objects.equals(policy.getResponseTimeHours(), request.getResponseTimeHours()) ||
-                        !Objects.equals(policy.getResolutionTimeHours(), request.getResolutionTimeHours()) ||
-                        !Objects.equals(policy.getActive(), request.getActive());
+        boolean changed = !Objects.equals(policy.getResponseTimeHours(), request.getResponseTimeHours()) ||
+                !Objects.equals(policy.getResolutionTimeHours(), request.getResolutionTimeHours()) ||
+                !Objects.equals(policy.getActive(), request.getActive());
 
         if (!changed) {
             return toPolicyResponse(policy);
@@ -99,15 +97,13 @@ public class SlaService {
 
         SlaPolicy savedPolicy = policyRepository.save(policy);
 
-        String oldValue =
-                "response=" + oldResponseHours +
-                        ", resolution=" + oldResolutionHours +
-                        ", active=" + oldActive;
+        String oldValue = "response=" + oldResponseHours +
+                ", resolution=" + oldResolutionHours +
+                ", active=" + oldActive;
 
-        String newValue =
-                "response=" + savedPolicy.getResponseTimeHours() +
-                        ", resolution=" + savedPolicy.getResolutionTimeHours() +
-                        ", active=" + savedPolicy.getActive();
+        String newValue = "response=" + savedPolicy.getResponseTimeHours() +
+                ", resolution=" + savedPolicy.getResolutionTimeHours() +
+                ", active=" + savedPolicy.getActive();
 
         String username = SecurityContextHolder.getContext()
                 .getAuthentication()
@@ -123,8 +119,7 @@ public class SlaService {
                 currentUser.getId(),
                 "SLA policy updated for priority: " + savedPolicy.getPriority(),
                 oldValue,
-                newValue
-        );
+                newValue);
 
         return toPolicyResponse(savedPolicy);
     }
@@ -158,7 +153,41 @@ public class SlaService {
         response.setBreachedAt(tracking.getBreachedAt());
         response.setRemainingMinutes(calculateRemainingMinutes(tracking));
         response.setWarningLevel(calculateWarningLevel(tracking));
+        response.setPausedAt(tracking.getPausedAt());
+        response.setTotalPausedDurationMinutes(tracking.getTotalPausedDurationMinutes());
         return response;
+    }
+
+    public void handleTicketTransition(Ticket ticket, com.nisa.itsm.common.enums.TicketStatus fromStatus,
+            com.nisa.itsm.common.enums.TicketStatus toStatus) {
+        if (fromStatus != com.nisa.itsm.common.enums.TicketStatus.WAITING_FOR_CUSTOMER
+                && toStatus == com.nisa.itsm.common.enums.TicketStatus.WAITING_FOR_CUSTOMER) {
+            trackingRepository.findByTicketId(ticket.getId()).ifPresent(tracking -> {
+                if (tracking.getPausedAt() == null) {
+                    tracking.setPausedAt(LocalDateTime.now());
+                }
+            });
+        } else if (fromStatus == com.nisa.itsm.common.enums.TicketStatus.WAITING_FOR_CUSTOMER
+                && toStatus == com.nisa.itsm.common.enums.TicketStatus.IN_PROGRESS) {
+            trackingRepository.findByTicketId(ticket.getId()).ifPresent(tracking -> {
+                if (tracking.getPausedAt() != null) {
+                    long pausedMinutes = Duration.between(tracking.getPausedAt(), LocalDateTime.now()).toMinutes();
+                    long currentTotal = tracking.getTotalPausedDurationMinutes() != null
+                            ? tracking.getTotalPausedDurationMinutes()
+                            : 0L;
+                    tracking.setTotalPausedDurationMinutes(currentTotal + pausedMinutes);
+
+                    if (tracking.getDueDate() != null) {
+                        tracking.setDueDate(tracking.getDueDate().plusMinutes(pausedMinutes));
+                    }
+                    if (tracking.getFirstResponseDueDate() != null) {
+                        tracking.setFirstResponseDueDate(tracking.getFirstResponseDueDate().plusMinutes(pausedMinutes));
+                    }
+
+                    tracking.setPausedAt(null);
+                }
+            });
+        }
     }
 
     private Long calculateRemainingMinutes(SlaTracking tracking) {

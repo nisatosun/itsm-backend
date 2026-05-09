@@ -21,5 +21,6 @@ public class SlaTrackingResponse {
     private Long remainingMinutes;
     private String warningLevel;
 
-    // getters setters
+    private LocalDateTime pausedAt;
+    private Long totalPausedDurationMinutes;
 }

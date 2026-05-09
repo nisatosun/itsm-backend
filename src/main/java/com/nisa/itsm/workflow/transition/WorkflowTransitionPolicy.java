@@ -16,7 +16,9 @@ import java.util.Set;
 public class WorkflowTransitionPolicy {
 
     private static final Map<TicketStatus, Set<TicketStatus>> ALLOWED_TRANSITIONS = Map.of(
-            TicketStatus.NEW, EnumSet.of(TicketStatus.IN_PROGRESS),
+            TicketStatus.NEW, EnumSet.of(TicketStatus.TRIAGE),
+            TicketStatus.TRIAGE, EnumSet.of(TicketStatus.ASSIGNED),
+            TicketStatus.ASSIGNED, EnumSet.of(TicketStatus.IN_PROGRESS),
             TicketStatus.IN_PROGRESS, EnumSet.of(TicketStatus.WAITING_FOR_CUSTOMER, TicketStatus.RESOLVED),
             TicketStatus.WAITING_FOR_CUSTOMER, EnumSet.of(TicketStatus.IN_PROGRESS),
             TicketStatus.RESOLVED, EnumSet.of(TicketStatus.CLOSED, TicketStatus.IN_PROGRESS),

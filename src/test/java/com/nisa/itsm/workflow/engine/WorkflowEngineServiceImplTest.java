@@ -1,7 +1,9 @@
 package com.nisa.itsm.workflow.engine;
 
 import com.nisa.itsm.common.enums.TicketStatus;
+import com.nisa.itsm.exception.custom.BadRequestException;
 import com.nisa.itsm.ticket.entity.Ticket;
+import com.nisa.itsm.sla.service.SlaService;
 import com.nisa.itsm.user.entity.User;
 import com.nisa.itsm.workflow.service.WorkflowHistoryService;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
@@ -22,15 +25,18 @@ class WorkflowEngineServiceImplTest {
     @Mock
     private WorkflowHistoryService workflowHistoryService;
 
+    @Mock
+    private SlaService slaService;
+
     private WorkflowEngineServiceImpl workflowEngineService;
 
     @BeforeEach
     void setUp() {
-        workflowEngineService = new WorkflowEngineServiceImpl(workflowHistoryService);
+        workflowEngineService = new WorkflowEngineServiceImpl(workflowHistoryService, slaService);
     }
 
     @Test
-    void executeAssignment_WhenTicketIsNew_ShouldTransitionToInProgress() {
+    void executeAssignment_WhenTicketIsNew_ShouldTransitionToAssigned() {
         Ticket ticket = new Ticket();
         ticket.setId(1L);
         ticket.setStatus(TicketStatus.NEW);
@@ -41,7 +47,38 @@ class WorkflowEngineServiceImplTest {
         workflowEngineService.executeAssignment(ticket, assignee);
 
         assertThat(ticket.getAssignee()).isEqualTo(assignee);
-        assertThat(ticket.getStatus()).isEqualTo(TicketStatus.IN_PROGRESS);
+        assertThat(ticket.getStatus()).isEqualTo(TicketStatus.ASSIGNED);
+
+        verify(workflowHistoryService).recordTransition(
+                eq(ticket),
+                eq(TicketStatus.NEW),
+                eq(TicketStatus.ASSIGNED),
+                eq("STATUS_TRANSITION"),
+                eq("Ticket moved to ASSIGNED"),
+                eq(assignee));
+    }
+
+    @Test
+    void executeAssignment_WhenTicketIsTriage_ShouldTransitionToAssigned() {
+        Ticket ticket = new Ticket();
+        ticket.setId(1L);
+        ticket.setStatus(TicketStatus.TRIAGE);
+
+        User assignee = new User();
+        assignee.setId(10L);
+
+        workflowEngineService.executeAssignment(ticket, assignee);
+
+        assertThat(ticket.getAssignee()).isEqualTo(assignee);
+        assertThat(ticket.getStatus()).isEqualTo(TicketStatus.ASSIGNED);
+
+        verify(workflowHistoryService).recordTransition(
+                eq(ticket),
+                eq(TicketStatus.TRIAGE),
+                eq(TicketStatus.ASSIGNED),
+                eq("STATUS_TRANSITION"),
+                eq("Ticket moved to ASSIGNED"),
+                eq(assignee));
     }
 
     @Test
@@ -60,12 +97,12 @@ class WorkflowEngineServiceImplTest {
     }
 
     @Test
-    void executeTransition_WhenTargetIsResolved_ShouldSetResolvedAt() {
+    void executeTransition_WhenTargetIsResolvedWithResolutionNote_ShouldSetResolvedAt() {
         Ticket ticket = new Ticket();
         ticket.setId(3L);
         ticket.setStatus(TicketStatus.IN_PROGRESS);
 
-        workflowEngineService.executeTransition(ticket, TicketStatus.RESOLVED, null, null);
+        workflowEngineService.executeTransition(ticket, TicketStatus.RESOLVED, null, "  Issue fixed  ");
 
         assertThat(ticket.getStatus()).isEqualTo(TicketStatus.RESOLVED);
         assertThat(ticket.getResolvedAt()).isNotNull();
@@ -75,9 +112,37 @@ class WorkflowEngineServiceImplTest {
                 eq(ticket),
                 eq(TicketStatus.IN_PROGRESS),
                 eq(TicketStatus.RESOLVED),
-                eq("STATUS_CHANGED"),
-                isNull(),
+                eq("STATUS_TRANSITION"),
+                eq("Issue fixed"),
                 isNull());
+    }
+
+    @Test
+    void executeTransition_WhenTargetIsResolvedWithoutResolutionNote_ShouldThrowBadRequest() {
+        Ticket ticket = new Ticket();
+        ticket.setId(6L);
+        ticket.setStatus(TicketStatus.IN_PROGRESS);
+
+        assertThatThrownBy(() -> workflowEngineService.executeTransition(ticket, TicketStatus.RESOLVED, null, null))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("Resolution note is required when resolving a ticket");
+
+        assertThat(ticket.getStatus()).isEqualTo(TicketStatus.IN_PROGRESS);
+        verifyNoInteractions(slaService, workflowHistoryService);
+    }
+
+    @Test
+    void executeTransition_WhenTargetIsResolvedWithBlankResolutionNote_ShouldThrowBadRequest() {
+        Ticket ticket = new Ticket();
+        ticket.setId(7L);
+        ticket.setStatus(TicketStatus.IN_PROGRESS);
+
+        assertThatThrownBy(() -> workflowEngineService.executeTransition(ticket, TicketStatus.RESOLVED, null, "   "))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("Resolution note is required when resolving a ticket");
+
+        assertThat(ticket.getStatus()).isEqualTo(TicketStatus.IN_PROGRESS);
+        verifyNoInteractions(slaService, workflowHistoryService);
     }
 
     @Test
@@ -95,7 +160,7 @@ class WorkflowEngineServiceImplTest {
                 eq(ticket),
                 eq(TicketStatus.RESOLVED),
                 eq(TicketStatus.CLOSED),
-                eq("STATUS_CHANGED"),
+                eq("STATUS_TRANSITION"),
                 isNull(),
                 isNull());
     }
@@ -116,8 +181,29 @@ class WorkflowEngineServiceImplTest {
                 eq(ticket),
                 eq(TicketStatus.NEW),
                 eq(TicketStatus.IN_PROGRESS),
-                eq("STATUS_CHANGED"),
+                eq("STATUS_TRANSITION"),
                 eq("Working on it"),
+                isNull());
+    }
+
+    @Test
+    void executeTransition_WhenReopened_ShouldClearResolvedAtAndRecordReopenAction() {
+        Ticket ticket = new Ticket();
+        ticket.setId(8L);
+        ticket.setStatus(TicketStatus.RESOLVED);
+        ticket.setResolvedAt(java.time.LocalDateTime.now());
+
+        workflowEngineService.executeTransition(ticket, TicketStatus.IN_PROGRESS, null, "Ticket reopened");
+
+        assertThat(ticket.getStatus()).isEqualTo(TicketStatus.IN_PROGRESS);
+        assertThat(ticket.getResolvedAt()).isNull();
+
+        verify(workflowHistoryService).recordTransition(
+                eq(ticket),
+                eq(TicketStatus.RESOLVED),
+                eq(TicketStatus.IN_PROGRESS),
+                eq("TICKET_REOPENED"),
+                eq("Ticket reopened"),
                 isNull());
     }
 }
