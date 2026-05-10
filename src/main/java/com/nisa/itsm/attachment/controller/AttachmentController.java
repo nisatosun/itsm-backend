@@ -9,6 +9,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,11 +21,14 @@ import java.util.List;
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
+@Tag(name = "Attachment Controller", description = "File upload and retrieval for tickets")
 public class AttachmentController {
 
     private final AttachmentService attachmentService;
 
-    @PostMapping("/tickets/{id}/attachments")
+    @PostMapping(value = "/tickets/{id}/attachments", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Upload attachment", description = "Uploads a multipart file attachment to a specific ticket")
+    @ApiResponse(responseCode = "201", description = "Attachment successfully uploaded")
     public ResponseEntity<AttachmentResponse> uploadAttachment(
             @PathVariable Long id,
             @RequestParam("file") MultipartFile file,
@@ -33,6 +39,8 @@ public class AttachmentController {
     }
 
     @GetMapping("/tickets/{id}/attachments")
+    @Operation(summary = "Get attachments by ticket", description = "Retrieves all attachment metadata for a specific ticket")
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved attachments")
     public ResponseEntity<List<AttachmentResponse>> getAttachmentsByTicket(
             @PathVariable Long id,
             Principal principal) {
@@ -42,6 +50,8 @@ public class AttachmentController {
     }
 
     @GetMapping("/attachments/{id}")
+    @Operation(summary = "Download attachment", description = "Downloads the binary file content of an attachment")
+    @ApiResponse(responseCode = "200", description = "Successfully downloaded file")
     public ResponseEntity<Resource> downloadAttachment(
             @PathVariable Long id,
             Principal principal) {
@@ -61,6 +71,8 @@ public class AttachmentController {
     }
 
     @DeleteMapping("/attachments/{id}")
+    @Operation(summary = "Delete attachment", description = "Deletes an attachment and its associated file")
+    @ApiResponse(responseCode = "204", description = "Attachment successfully deleted")
     public ResponseEntity<Void> deleteAttachment(
             @PathVariable Long id,
             Principal principal) {

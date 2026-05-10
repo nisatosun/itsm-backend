@@ -29,6 +29,7 @@ public class UserController {
 
     @PostMapping
     @Operation(summary = "Create user", description = "Creates a new user")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Successfully created user")
     public UserResponse createUser(@Valid @RequestBody UserCreateRequest request) {
         return userService.createUser(request);
     }
@@ -36,6 +37,7 @@ public class UserController {
     @GetMapping
     @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Get all users", description = "Returns all users without pagination, only accessible by ADMIN")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Successfully retrieved users")
     public List<UserResponse> getAllUsers() {
         return userService.getAllUsers();
     }
@@ -43,6 +45,7 @@ public class UserController {
     @GetMapping(params = {"page"})
     @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Get paginated users", description = "Returns paginated users, only accessible by ADMIN")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Successfully retrieved paginated users")
     public Page<UserSummaryDto> getPaginatedUsers(Pageable pageable) {
         return userService.getAllUsers(pageable);
     }
@@ -50,6 +53,7 @@ public class UserController {
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Get user by id", description = "Returns user details by user id, only accessible by ADMIN")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Successfully retrieved user")
     public UserDetailDto getUserById(@PathVariable Long id) {
         return userService.getUserById(id);
     }
@@ -57,6 +61,7 @@ public class UserController {
     @PutMapping("/{id}/roles")
     @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Update user roles", description = "Updates roles of a user, only accessible by ADMIN")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Successfully updated user roles")
     public UserResponse updateUserRoles(
             @PathVariable Long id,
             @Valid @RequestBody UpdateUserRolesRequest request) {

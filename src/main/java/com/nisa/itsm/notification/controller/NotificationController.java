@@ -7,6 +7,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.security.Principal;
 import org.springframework.data.domain.Page;
 import java.util.List;
@@ -14,11 +17,14 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/notifications")
 @RequiredArgsConstructor
+@Tag(name = "Notification Controller", description = "User notification management")
 public class NotificationController {
 
         private final NotificationService notificationService;
 
         @GetMapping
+        @Operation(summary = "Get user notifications", description = "Retrieves all notifications for the authenticated user")
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved notifications")
         public ResponseEntity<List<NotificationResponse>> getMyNotifications(
                         Principal principal) {
                 return ResponseEntity.ok(
@@ -26,6 +32,8 @@ public class NotificationController {
         }
 
         @GetMapping(params = { "page", "size" })
+        @Operation(summary = "Get paginated user notifications", description = "Retrieves a paginated list of notifications")
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved paginated notifications")
         public ResponseEntity<Page<NotificationResponse>> getMyNotificationsPaged(
                         Principal principal,
                         @RequestParam(defaultValue = "0") int page,
@@ -35,6 +43,8 @@ public class NotificationController {
         }
 
         @PutMapping("/{id}/read")
+        @Operation(summary = "Mark notification as read", description = "Marks a specific notification as read")
+        @ApiResponse(responseCode = "204", description = "Successfully marked as read")
         public ResponseEntity<Void> markAsRead(
                         @PathVariable Long id,
                         Principal principal) {
@@ -43,6 +53,8 @@ public class NotificationController {
         }
 
         @PutMapping("/mark-all-read")
+        @Operation(summary = "Mark all notifications as read", description = "Marks all unread notifications as read for the user")
+        @ApiResponse(responseCode = "204", description = "Successfully marked all as read")
         public ResponseEntity<Void> markAllAsRead(
                         Principal principal) {
                 notificationService.markAllAsRead(principal.getName());
@@ -50,6 +62,8 @@ public class NotificationController {
         }
 
         @GetMapping("/count")
+        @Operation(summary = "Get unread count", description = "Retrieves the count of unread notifications")
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved count")
         public ResponseEntity<UnreadNotificationCountResponse> getUnreadCount(
                         Principal principal) {
                 return ResponseEntity.ok(

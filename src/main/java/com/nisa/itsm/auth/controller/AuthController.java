@@ -13,13 +13,14 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-@Tag(name = "Auth Controller", description = "Authentication and authorization endpoints")
+@Tag(name = "Auth Controller", description = "Authentication context and authenticated user profile endpoints")
 public class AuthController {
 
     private final UserProfileMapper userProfileMapper;
 
     @GetMapping("/me")
     @Operation(summary = "Get current user profile", description = "Returns authenticated user's profile extracted from JWT token")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Successfully retrieved profile")
     public UserProfileDto me(@AuthenticationPrincipal Jwt jwt) {
         return userProfileMapper.fromJwt(jwt);
     }
@@ -27,6 +28,7 @@ public class AuthController {
     @GetMapping("/test-customer")
     @PreAuthorize("hasAuthority('CUSTOMER')")
     @Operation(summary = "Customer test endpoint", description = "Accessible only by users with CUSTOMER role")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Successfully accessed")
     public String testCustomer() {
         return "Hello CUSTOMER";
     }
@@ -34,6 +36,7 @@ public class AuthController {
     @GetMapping("/test-admin")
     @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Admin test endpoint", description = "Accessible only by users with ADMIN role")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Successfully accessed")
     public String testAdmin() {
         return "Hello ADMIN";
     }

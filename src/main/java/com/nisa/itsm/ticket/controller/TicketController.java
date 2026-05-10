@@ -8,6 +8,9 @@ import com.nisa.itsm.ticket.dto.response.TicketDetailResponse;
 import com.nisa.itsm.ticket.dto.response.TicketSummaryResponse;
 import com.nisa.itsm.ticket.service.TicketService;
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,11 +26,14 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/tickets")
 @RequiredArgsConstructor
+@Tag(name = "Ticket Controller", description = "Core ticket lifecycle and management endpoints")
 public class TicketController {
 
     private final TicketService ticketService;
 
     @PostMapping
+    @Operation(summary = "Create ticket", description = "Creates a new ticket and initializes workflow")
+    @ApiResponse(responseCode = "200", description = "Ticket successfully created")
     public ResponseEntity<TicketDetailResponse> createTicket(
             @Valid @RequestBody CreateTicketRequest request,
             Principal principal) {
@@ -36,6 +42,8 @@ public class TicketController {
 
     @GetMapping
     @PreAuthorize("hasAnyAuthority('ADMIN', 'AGENT', 'MANAGER')")
+    @Operation(summary = "Get all tickets", description = "Retrieves paginated tickets with filtering options")
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved tickets")
     public ResponseEntity<PageResponse<TicketSummaryResponse>> getAllTickets(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -69,11 +77,15 @@ public class TicketController {
     }
 
     @GetMapping("/my")
+    @Operation(summary = "Get my tickets", description = "Retrieves tickets owned by the current authenticated user")
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved tickets")
     public ResponseEntity<List<TicketSummaryResponse>> getMyTickets(Principal principal) {
         return ResponseEntity.ok(ticketService.getMyTickets(principal.getName()));
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Get ticket details", description = "Retrieves detailed information for a specific ticket")
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved ticket")
     public ResponseEntity<TicketDetailResponse> getTicketById(
             @PathVariable Long id,
             Principal principal,
@@ -89,6 +101,8 @@ public class TicketController {
 
     @PutMapping("/{id}/assign")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER')")
+    @Operation(summary = "Assign ticket", description = "Assigns a ticket to a specific agent (Transitions to ASSIGNED)")
+    @ApiResponse(responseCode = "200", description = "Ticket successfully assigned")
     public ResponseEntity<Void> assignTicket(
             @PathVariable Long id,
             @Valid @RequestBody AssignTicketRequest request) {
@@ -98,6 +112,8 @@ public class TicketController {
 
     @PutMapping("/{id}/claim")
     @PreAuthorize("hasAnyAuthority('AGENT')")
+    @Operation(summary = "Claim ticket", description = "Agent claims an unassigned ticket (Transitions to ASSIGNED)")
+    @ApiResponse(responseCode = "200", description = "Ticket successfully claimed")
     public ResponseEntity<Void> claimTicket(
             @PathVariable Long id,
             Principal principal,
@@ -108,6 +124,8 @@ public class TicketController {
 
     @PutMapping("/{id}/status")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'AGENT')")
+    @Operation(summary = "Update ticket status", description = "Updates the status of a ticket based on workflow rules")
+    @ApiResponse(responseCode = "200", description = "Status successfully updated")
     public ResponseEntity<Void> updateTicketStatus(
             @PathVariable Long id,
             @Valid @RequestBody UpdateTicketStatusRequest request,
@@ -120,6 +138,8 @@ public class TicketController {
 
     @PutMapping("/{id}/reopen")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'AGENT', 'CUSTOMER')")
+    @Operation(summary = "Reopen ticket", description = "Reopens a RESOLVED ticket (Transitions back to IN_PROGRESS)")
+    @ApiResponse(responseCode = "200", description = "Ticket successfully reopened")
     public ResponseEntity<Void> reopenTicket(
             @PathVariable Long id,
             Principal principal,
@@ -131,6 +151,8 @@ public class TicketController {
 
     @PutMapping("/{id}/close")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'CUSTOMER')")
+    @Operation(summary = "Close ticket", description = "Closes a RESOLVED ticket (Transitions to CLOSED)")
+    @ApiResponse(responseCode = "200", description = "Ticket successfully closed")
     public ResponseEntity<Void> closeTicket(
             @PathVariable Long id,
             Principal principal,
